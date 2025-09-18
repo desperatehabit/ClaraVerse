@@ -1,15 +1,65 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Supabase configuration
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+// Guard in development to avoid crashing the renderer when env vars are missing.
+// In production you should ensure these are set via your build/CI environment.
+function isValidHttpUrl(url?: string): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Very permissive any-typed shim to avoid type unions with real Postgrest builders.
+// We intentionally use 'any' to keep the rest of this file unchanged.
+type SupabaseShim = {
+  from: (_table: string) => any;
+  rpc: (_fn: string, _args?: Record<string, any>) => Promise<{ data: any; error: any }>;
+};
+
+let supabase: any;
+
+if (isValidHttpUrl(supabaseUrl) && typeof supabaseAnonKey === 'string' && supabaseAnonKey.length > 0) {
+  // Create real Supabase client
+  supabase = createClient(supabaseUrl as string, supabaseAnonKey as string);
+} else {
+  // Soft-fail: log once and provide a minimal no-op shim so the UI can load.
+  const reason = !supabaseUrl || !supabaseAnonKey
+    ? 'Missing Supabase environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).'
+    : `Invalid Supabase URL: ${String(supabaseUrl)}`;
+  // eslint-disable-next-line no-console
+  console.warn('[CommunityService] Supabase disabled:', reason);
+
+  // Chainable no-op that returns itself for query builder methods,
+  // and returns a promise for terminal methods used in this file.
+  const chain: any = {
+    insert: async () => ({ data: null, error: { message: 'Supabase disabled (no env)' } }),
+    select: async () => ({ data: null, error: { message: 'Supabase disabled (no env)' }, count: 0 }),
+    update: async () => ({ data: null, error: { message: 'Supabase disabled (no env)' } }),
+    delete: async () => ({ data: null, error: { message: 'Supabase disabled (no env)' } }),
+    single: async () => ({ data: null, error: { message: 'Supabase disabled (no env)' } }),
+    eq: () => chain,
+    in: () => chain,
+    order: () => chain,
+    limit: () => chain,
+    range: () => chain,
+    or: () => chain,
+  };
+
+  supabase = {
+    from: () => chain,
+    rpc: async () => ({ data: null, error: { message: 'Supabase disabled (no env)' } }),
+  } as SupabaseShim;
+}
+
+// Export the client (may be a real client or a no-op shim)
+export { supabase };
 
 // Types for TypeScript
 export interface CommunityUser {
@@ -410,7 +460,7 @@ export class CommunityService {
       return new Set();
     }
 
-    return new Set(data.map(like => like.resource_id));
+    return new Set((data as Array<{ resource_id: string }>).map((like) => like.resource_id));
   }
 
   static async incrementDownloads(resourceId: string): Promise<void> {

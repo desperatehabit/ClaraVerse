@@ -195,7 +195,13 @@ log.transports.file.level = 'info';
 log.info('Application starting...');
 
 // Single instance lock - prevent multiple instances of the app
-const gotTheLock = app.requestSingleInstanceLock();
+// Allow a second instance during development hot-reload flow when explicitly enabled
+const allowSecondInstance = process.env.NODE_ENV === 'development' && process.env.ELECTRON_ALLOW_SECOND_INSTANCE === 'true';
+
+let gotTheLock = true;
+if (!allowSecondInstance) {
+  gotTheLock = app.requestSingleInstanceLock();
+}
 
 if (!gotTheLock) {
   log.info('Another instance of ClaraVerse is already running. Exiting this instance.');
@@ -6122,26 +6128,40 @@ async function createMainWindow() {
     }
   });
 
+  // Add detailed diagnostics for dev-server loading and renderer issues
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    log.error(`did-fail-load: code=${errorCode}, desc=${errorDescription}, url=${validatedURL}, main=${isMainFrame}`);
+  });
+  mainWindow.webContents.on('render-process-gone', (_e, details) => {
+    log.error('render-process-gone:', details);
+  });
+  mainWindow.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+    log.info(`[renderer console:${level}] ${message} (${sourceId}:${line})`);
+  });
+
   // Development mode with hot reload
   if (process.env.NODE_ENV === 'development') {
     if (process.env.ELECTRON_HOT_RELOAD === 'true') {
       // Hot reload mode
-      const devServerUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173';
-      
-      log.info('Loading development server with hot reload:', devServerUrl);
-      mainWindow.loadURL(devServerUrl).catch(err => {
-        log.error('Failed to load dev server:', err);
-        // Fallback to local file if dev server fails
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-      });
+      const devServerUrl = process.env.ELECTRON_START_URL || 'http://127.0.0.1:5173';
+      log.info(`Dev env: ELECTRON_HOT_RELOAD=${process.env.ELECTRON_HOT_RELOAD}, ELECTRON_START_URL=${process.env.ELECTRON_START_URL || '(not set)'} -> using ${devServerUrl}`);
 
-      // Enable hot reload by watching the renderer process
-      mainWindow.webContents.on('did-fail-load', () => {
-        log.warn('Page failed to load, retrying...');
-        setTimeout(() => {
-          mainWindow?.webContents.reload();
-        }, 1000);
-      });
+      const loadDevServer = (url, retries = 10, delay = 2000) => {
+        mainWindow.loadURL(url).catch(err => {
+          const attempt = (retriesMax, left) => (retriesMax - left + 1);
+          const max = 10;
+          log.error(`Failed to load dev server (attempt ${attempt(max, retries)}/${max}): ${err?.message || err}`);
+          if (retries > 0 && mainWindow && !mainWindow.isDestroyed()) {
+            log.info(`Retrying in ${delay / 1000}s... URL=${url}`);
+            setTimeout(() => loadDevServer(url, retries - 1, delay), delay);
+          } else if (mainWindow && !mainWindow.isDestroyed()) {
+            log.error('All retries failed. Falling back to local file.');
+            mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+          }
+        });
+      };
+
+      loadDevServer(devServerUrl);
     } else {
       // Development mode without hot reload - use built files
       log.info('Loading development build from dist directory');

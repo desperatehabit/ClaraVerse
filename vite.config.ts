@@ -92,6 +92,9 @@ export default defineConfig({
   },
   base: process.env.ELECTRON_START_URL ? '/' : './',
   server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
     headers: {
       'Cross-Origin-Embedder-Policy': 'credentialless',
       'Cross-Origin-Opener-Policy': 'same-origin',

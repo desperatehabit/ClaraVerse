@@ -41,7 +41,7 @@ setTimeout(async () => {
     const { agentWorkflowStorage } = await import('./services/agentWorkflowStorage');
     const { schedulerStorage } = await import('./services/schedulerStorage');
     const customNodeManagerModule = await import('../sdk/src/customNodeManager');
-    
+
     (window as any).agentWorkflowStorage = agentWorkflowStorage;
     (window as any).schedulerStorage = schedulerStorage;
     (window as any).customNodeManager = customNodeManagerModule.CustomNodeManager || customNodeManagerModule.default;
