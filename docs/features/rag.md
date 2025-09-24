@@ -1,5 +1,5 @@
 ---
-title: "RAG"
+title: "Notebooks"
 description: "Your intelligent knowledge canvas with 3D visualization"
 category: "features"
 order: 5
@@ -10,17 +10,17 @@ contributors: ["badboysm890"]
 
 <img src="https://raw.githubusercontent.com/badboysm890/ClaraVerse/935d0659b468f2d896f7acf2878725c35500cbe6/public/mascot/Rag.png" alt="Clara with notebooks and knowledge visualization" width="400" />
 
-# Notebooks (RAG)
+# Notebooks (Notebooks)
 
 Document storage with AI-powered search and conversation capabilities.
 
 ## What Notebooks Are
 
-Notebooks are your knowledge management system. Upload documents, and then chat with them using RAG (Retrieval Augmented Generation). It's like having a research assistant who's read everything you've uploaded and can answer questions about it.
+Notebooks are your knowledge management system. Upload documents, and then chat with them using Notebooks (Retrieval Augmented Generation). It's like having a research assistant who's read everything you've uploaded and can answer questions about it.
 
 ## Technical Stack
 
-- **LightRAG**: The RAG engine (runs in Docker container)
+- **LightNotebooks**: The Notebooks engine (runs in Docker container)
 - **Embedding Model**: mxbai-embed-large
 - **Storage**: Browser IndexedDB + mounted Docker volumes
 - **Visualization**: 3D knowledge graph using Three.js
@@ -28,7 +28,7 @@ Notebooks are your knowledge management system. Upload documents, and then chat 
 ## System Requirements
 
 - Base ClaraVerse requirements
-- Additional 8GB storage for RAG container
+- Additional 8GB storage for Notebooks container
 - Docker required for backend
 - 2GB+ RAM for embedding operations
 
@@ -36,7 +36,7 @@ Notebooks are your knowledge management system. Upload documents, and then chat 
 
 1. Start Docker
 2. Go to Notebooks tab
-3. First launch downloads RAG container (~8GB)
+3. First launch downloads Notebooks container (~8GB)
 4. Wait for health check to pass
 5. Create your first notebook
 
@@ -151,7 +151,7 @@ Daily Workflow:
 
 ## Performance Optimization
 
-### For Better RAG Results
+### For Better Notebooks Results
 1. **Quality Documents**: Clean PDFs work better than scanned images
 2. **Logical Organization**: One topic per notebook
 3. **Clear Naming**: Descriptive filenames help retrieval
@@ -195,7 +195,7 @@ docker logs claraverse-rag
 - Ensure documents are fully processed (green status)
 - Check backend health in settings
 - Refresh the page
-- Restart RAG container
+- Restart Notebooks container
 
 ## Advanced Features
 
@@ -219,7 +219,7 @@ docker logs claraverse-rag
 - All processing happens locally
 - Documents never leave your machine
 - Embeddings stored in Docker volume
-- No external API calls for RAG
+- No external API calls for Notebooks
 
 ## Backup Strategy
 
@@ -237,7 +237,7 @@ docker cp claraverse-rag:/data ./backup
 2. **PDF over everything** - Most reliable format
 3. **Update regularly** - Use agents for automatic updates
 4. **Name consistently** - "YYYY-MM-DD_description" works well
-5. **Test retrieval** - Ask questions to verify RAG is working
+5. **Test retrieval** - Ask questions to verify Notebooks is working
 
 ## Getting Started
 

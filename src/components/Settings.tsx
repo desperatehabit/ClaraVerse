@@ -288,7 +288,7 @@ const Settings = () => {
     { id: 'openrouter', label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', type: 'openrouter', brandDomain: 'openrouter.ai' },
     { id: 'groq', label: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', type: 'openai_compatible', brandDomain: 'groq.com' },
     { id: 'grok', label: 'Grok (xAI)', baseUrl: 'https://api.x.ai/v1', type: 'openai_compatible', brandDomain: 'x.ai' },
-    { id: 'gemini', label: 'Google Gemini', baseUrl: 'https://cloudaicompanion.googleapis.com', type: 'openai_compatible', brandDomain: 'gemini.google.com' },
+    { id: 'gemini', label: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/', type: 'openai_compatible', brandDomain: 'gemini.google.com' },
     { id: 'mistral', label: 'Mistral AI', baseUrl: 'https://api.mistral.ai/v1', type: 'openai_compatible', brandDomain: 'mistral.ai' },
     { id: 'meta-llama', label: 'Meta (Llama API)', baseUrl: 'https://llama-api.meta.com/v1', type: 'openai_compatible', brandDomain: 'meta.com' },
     { id: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', type: 'openai_compatible', brandDomain: 'deepseek.com' },

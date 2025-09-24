@@ -1,0 +1,33 @@
+{
+  "projects": [
+    {
+      "id": "89affa28-f78c-44f4-b7ad-f2b39f24f878",
+      "name": null,
+      "description": null,
+      "color": null,
+      "created_at": "2025-09-22T20:44:05.257Z",
+      "updated_at": "2025-09-22T20:44:05.257Z"
+    },
+    {
+      "id": "cascade-test-1758573845258-4935b2e1",
+      "name": "Cascade Test Project",
+      "description": "Testing cascading deletes",
+      "color": "#00FF00",
+      "created_at": "2025-09-22T20:44:05.258Z",
+      "updated_at": "2025-09-22T20:44:05.258Z"
+    },
+    {
+      "id": "439d37cf-bd73-4440-9c03-e52ecb3b895d",
+      "name": "IPC Test Project",
+      "description": null,
+      "color": null,
+      "created_at": "2025-09-22T20:44:05.259Z",
+      "updated_at": "2025-09-22T20:44:05.259Z"
+    }
+  ],
+  "tasks": [],
+  "metadata": {
+    "created": "2025-09-22T20:44:05.244Z",
+    "fallback": true
+  }
+}

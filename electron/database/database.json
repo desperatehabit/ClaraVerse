@@ -1,0 +1,14 @@
+{
+  "dev": {
+    "driver": "sqlite3",
+    "filename": "clara_tasks.db"
+  },
+  "production": {
+    "driver": "sqlite3",
+    "filename": "clara_tasks.db"
+  },
+  "test": {
+    "driver": "sqlite3",
+    "filename": "clara_tasks_test.db"
+  }
+}

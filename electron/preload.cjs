@@ -46,7 +46,23 @@ const validChannels = [
   'service-init-progress',
   'comfyui:startup-progress',
   'n8n:startup-progress',
-  'python:startup-progress'
+  'python:startup-progress',
+  // Task management channels
+  'task-created',
+  'task-updated',
+  'task-deleted',
+  'project-created',
+  'project-updated',
+  'project-deleted',
+  'ai-task-processed',
+  'task-breakdown-complete',
+  'tasks:getTasks',
+  'tasks:createTask',
+  'tasks:updateTask',
+  'tasks:deleteTask',
+  'tasks:createProject',
+  'tasks:updateProject',
+  'tasks:deleteProject'
 ];
 
 // Add explicit logging for debugging
@@ -451,6 +467,88 @@ contextBridge.exposeInMainWorld('electronScreenShare', {
   getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
   getScreenAccessStatus: () => ipcRenderer.invoke('get-screen-access-status'),
   requestScreenAccess: () => ipcRenderer.invoke('request-screen-access')
+});
+
+// Add task management API
+contextBridge.exposeInMainWorld('taskManager', {
+  // Project operations
+  getProjects: () => ipcRenderer.invoke('get-projects'),
+  createProject: (projectData) => ipcRenderer.invoke('create-project', projectData),
+  updateProject: (projectId, updates) => ipcRenderer.invoke('update-project', projectId, updates),
+  deleteProject: (projectId) => ipcRenderer.invoke('delete-project', projectId),
+
+  // Task operations
+  getTasks: (projectId) => ipcRenderer.invoke('get-tasks', projectId),
+  getAllTasks: () => ipcRenderer.invoke('get-all-tasks'),
+  createTask: (taskData) => ipcRenderer.invoke('create-task', taskData),
+  updateTask: (taskId, updates) => ipcRenderer.invoke('update-task', taskId, updates),
+  deleteTask: (taskId) => ipcRenderer.invoke('delete-task', taskId),
+  getTaskById: (taskId) => ipcRenderer.invoke('get-task-by-id', taskId),
+
+  // AI integration
+  processNaturalLanguageTask: (text, projectId) => ipcRenderer.invoke('process-natural-language-task', { text, projectId }),
+  breakdownTask: (taskId, options) => ipcRenderer.invoke('breakdown-task', taskId, options),
+
+  // Task event listeners
+  onTaskCreated: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('task-created', subscription);
+    return () => ipcRenderer.removeListener('task-created', subscription);
+  },
+  onTaskUpdated: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('task-updated', subscription);
+    return () => ipcRenderer.removeListener('task-updated', subscription);
+  },
+  onTaskDeleted: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('task-deleted', subscription);
+    return () => ipcRenderer.removeListener('task-deleted', subscription);
+  },
+  onProjectCreated: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('project-created', subscription);
+    return () => ipcRenderer.removeListener('project-created', subscription);
+  },
+  onProjectUpdated: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('project-updated', subscription);
+    return () => ipcRenderer.removeListener('project-updated', subscription);
+  },
+  onProjectDeleted: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('project-deleted', subscription);
+    return () => ipcRenderer.removeListener('project-deleted', subscription);
+  },
+  onAITaskProcessed: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('ai-task-processed', subscription);
+    return () => ipcRenderer.removeListener('ai-task-processed', subscription);
+  },
+  onTaskBreakdownComplete: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('task-breakdown-complete', subscription);
+    return () => ipcRenderer.removeListener('task-breakdown-complete', subscription);
+  }
+});
+
+// Add personalTaskAPI for basic personal task operations
+contextBridge.exposeInMainWorld('personalTaskAPI', {
+  // Project operations
+  getProjects: () => {
+    console.log('[preload.cjs] personalTaskAPI.getProjects: Invoking "tasks:getProjects"');
+    return ipcRenderer.invoke('tasks:getProjects');
+  },
+  createProject: (projectData) => ipcRenderer.invoke('tasks:createProject', projectData),
+  updateProject: (id, updates) => ipcRenderer.invoke('tasks:updateProject', { id, updates }),
+  deleteProject: (id) => ipcRenderer.invoke('tasks:deleteProject', id),
+  getTasks: (projectId) => {
+    console.log(`[preload.cjs] personalTaskAPI.getTasks: Invoking "get-tasks" with projectId: ${projectId}`);
+    return ipcRenderer.invoke('tasks:getTasks', projectId);
+  },
+  createTask: (taskData) => ipcRenderer.invoke('tasks:createTask', taskData),
+  updateTask: (id, updates) => ipcRenderer.invoke('tasks:updateTask', { id, updates }),
+  deleteTask: (id) => ipcRenderer.invoke('tasks:deleteTask', id)
 });
 
 // Notify main process when preload script has loaded

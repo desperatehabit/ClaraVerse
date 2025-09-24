@@ -1,0 +1,17 @@
+{
+  "projects": [
+    {
+      "id": "test-project-1758590594795",
+      "name": "Test Project for IPC Fix",
+      "description": "Test project for IPC handler verification",
+      "color": "#FF5733",
+      "created_at": "2025-09-23T01:23:14.802Z",
+      "updated_at": "2025-09-23T01:23:14.802Z"
+    }
+  ],
+  "tasks": [],
+  "metadata": {
+    "fallback": true,
+    "originalDb": "./test_ipc_fix.db"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "projects": [],
+  "tasks": [],
+  "metadata": {
+    "fallback": true,
+    "originalDb": "./clara_tasks.db"
+  }
+}

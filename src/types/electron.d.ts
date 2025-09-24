@@ -133,6 +133,41 @@ interface LlamaSwapAPI {
   }>;
 }
 
+interface TaskManagerAPI {
+  // Project operations
+  getProjects: () => Promise<{ success: boolean; projects?: PersonalProject[]; error?: string }>;
+  createProject: (projectData: PersonalProject) => Promise<{ success: boolean; project?: PersonalProject; error?: string }>;
+  updateProject: (projectId: string, updates: Partial<PersonalProject>) => Promise<{ success: boolean; project?: PersonalProject; error?: string }>;
+  deleteProject: (projectId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Task operations
+  getTasks: (projectId?: string) => Promise<{ success: boolean; tasks?: PersonalTask[]; error?: string }>;
+  getAllTasks: () => Promise<{ success: boolean; tasks?: PersonalTask[]; error?: string }>;
+  createTask: (taskData: PersonalTask) => Promise<{ success: boolean; task?: PersonalTask; error?: string }>;
+  updateTask: (taskId: string, updates: Partial<PersonalTask>) => Promise<{ success: boolean; task?: PersonalTask; error?: string }>;
+  deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  getTaskById: (taskId: string) => Promise<{ success: boolean; task?: PersonalTask; error?: string }>;
+
+  // AI integration
+  processNaturalLanguageTask: (text: string, projectId?: string) => Promise<{ success: boolean; task?: PersonalTask; error?: string }>;
+  breakdownTask: (taskId: string, options?: any) => Promise<{ success: boolean; subtasks?: PersonalTask[]; error?: string }>;
+
+  // Event listeners
+  onTaskCreated: (callback: (data: PersonalTask) => void) => () => void;
+  onTaskUpdated: (callback: (data: PersonalTask) => void) => () => void;
+  onTaskDeleted: (callback: (data: { taskId: string }) => void) => () => void;
+  onProjectCreated: (callback: (data: PersonalProject) => void) => () => void;
+  onProjectUpdated: (callback: (data: PersonalProject) => void) => () => void;
+  onProjectDeleted: (callback: (data: { projectId: string }) => void) => () => void;
+  onAITaskProcessed: (callback: (data: any) => void) => () => void;
+  onTaskBreakdownComplete: (callback: (data: any) => void) => () => void;
+}
+
+interface PersonalTaskAPI {
+  getProjects: () => Promise<{ success: boolean; projects?: PersonalProject[]; error?: string }>;
+  getTasks: (projectId?: string) => Promise<{ success: boolean; tasks?: PersonalTask[]; error?: string }>;
+}
+
 declare global {
   interface Window {
     electron: Electron;
@@ -150,8 +185,8 @@ declare global {
       getGPUDiagnostics: () => Promise<{ success: boolean; gpuInfo?: any; modelInfo?: any[]; error?: string }>;
       setCustomModelPath: (path: string | null) => Promise<{ success: boolean; error?: string }>;
       getCustomModelPaths: () => Promise<string[]>;
-      scanCustomPathModels: (path: string) => Promise<{ 
-        success: boolean; 
+      scanCustomPathModels: (path: string) => Promise<{
+        success: boolean;
         models?: {
           name: string;
           file: string;
@@ -161,27 +196,29 @@ declare global {
           size: number;
           source: string;
           lastModified: Date;
-        }[]; 
+        }[];
         error?: string;
       }>;
       downloadHuggingFaceModel: (modelId: string, fileName: string, downloadPath: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
-      getModelEmbeddingInfo: (modelPath: string) => Promise<{ 
-        success: boolean; 
+      getModelEmbeddingInfo: (modelPath: string) => Promise<{
+        success: boolean;
         embeddingSize?: number | string;
         isVisionModel?: boolean;
         needsMmproj?: boolean;
         compatibleMmprojFiles?: any[];
         hasCompatibleMmproj?: boolean;
         compatibilityStatus?: string;
-        error?: string; 
+        error?: string;
       }>;
-      searchHuggingFaceMmproj: (modelName: string, embeddingSize: number) => Promise<{ 
-        success: boolean; 
+      searchHuggingFaceMmproj: (modelName: string, embeddingSize: number) => Promise<{
+        success: boolean;
         results?: any[];
-        error?: string; 
+        error?: string;
       }>;
       downloadModelWithDependencies: (modelId: string, fileName: string, allFiles: Array<{ rfilename: string; size?: number }>, downloadPath: string) => Promise<{ success: boolean; results?: any[]; downloadedFiles?: string[]; error?: string }>;
     };
+    taskManager: TaskManagerAPI;
+    personalTaskAPI: PersonalTaskAPI;
     modelManager: {
       searchHuggingFaceModels: (query: string, limit?: number, sort?: string) => Promise<{ success: boolean; models: any[]; error?: string }>;
       downloadModel: (modelId: string, fileName: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
