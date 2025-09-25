@@ -2,36 +2,18 @@ import React, { useEffect } from 'react';
 import { FolderOpen, Loader2, AlertCircle } from 'lucide-react';
 import { useTaskStore } from '../state/taskStore';
 import { PersonalProject } from '../types';
+import AddProjectForm from './AddProjectForm';
 
-interface ProjectSidebarProps {
-  projects?: PersonalProject[];
-  selectedProjectId?: string;
-  onProjectSelect?: (projectId: string) => void;
-}
-
-const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
-  projects: propProjects,
-  selectedProjectId: propSelectedProjectId,
-  onProjectSelect
-}) => {
-  console.log('ProjectSidebar: Component rendered');
-
+const ProjectSidebar: React.FC = () => {
   const {
-    projects: storeProjects,
-    selectedProjectId: storeSelectedProjectId,
+    projects,
+    selectedProjectId,
     fetchProjects,
     selectProject,
     loading,
-    error
+    error,
+    openAddProjectModal,
   } = useTaskStore();
-
-  // Use prop values if provided, otherwise use store values
-  const projects = propProjects || storeProjects;
-  const selectedProjectId = propSelectedProjectId !== undefined ? propSelectedProjectId : storeSelectedProjectId;
-
-  console.log('ProjectSidebar: Props', { propProjects, propSelectedProjectId });
-  console.log('ProjectSidebar: Store state', { storeProjects, storeSelectedProjectId, loading, error });
-  console.log('ProjectSidebar: Derived state', { projects, selectedProjectId });
 
   // Fetch projects on component mount
   useEffect(() => {
@@ -40,11 +22,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   }, []);
 
   const handleProjectSelect = (projectId: string | null) => {
-    if (onProjectSelect) {
-      onProjectSelect(projectId || '');
-    } else {
-      selectProject(projectId);
-    }
+    selectProject(projectId);
   };
 
   // Show loading state
@@ -148,6 +126,15 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
           ))}
         </div>
+        <div className="mt-4 border-t border-white/20 dark:border-gray-700/50 pt-4">
+          <button
+            onClick={openAddProjectModal}
+            className="w-full bg-blue-500 text-white p-2 rounded"
+          >
+            Add New Project
+          </button>
+        </div>
+        <AddProjectForm />
       </div>
     </div>
   );

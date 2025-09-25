@@ -6,10 +6,8 @@ const { checkForUpdates, getUpdateInfo, checkLlamacppUpdates, updateLlamacppBina
 const FeatureSelectionScreen = require('../featureSelection.cjs');
 const PlatformManager = require('../platformManager.cjs');
 
-function registerAppHandlers(ipcLogger, dockerSetup, llamaSwapService, mcpService, watchdogService) {
-  const { TaskService } = require('../services/taskService.cjs');
-  const dbPath = path.join(app.getPath('userData'), 'clara_tasks.db');
-  const taskService = TaskService.getInstance(dbPath);
+function registerAppHandlers(ipcLogger, dockerSetup, llamaSwapService, mcpService, watchdogService, taskService) {
+  // Use the TaskService instance passed from service-initializer
   ipcMain.handle('new-chat', async () => {
     log.info('New chat requested via IPC');
     return { success: true };
@@ -845,8 +843,9 @@ function registerAppHandlers(ipcLogger, dockerSetup, llamaSwapService, mcpServic
 
   ipcMain.on('app-close', async () => {
     log.info('App close requested from renderer');
-    const { isQuitting } = require('../main/tray');
-    isQuitting = true;
+    // Get the tray module and set isQuitting flag
+    const trayModule = require('../main/tray.cjs');
+    trayModule.isQuitting = true;
     app.quit();
   });
 
@@ -1095,93 +1094,6 @@ function registerAppHandlers(ipcLogger, dockerSetup, llamaSwapService, mcpServic
     } catch (error) {
       log.error('Error saving startup settings:', error);
       return { success: false, error: error.message };
-    }
-  });
-  
-  // Task and Project IPC Handlers
-  ipcMain.handle('get-tasks', async (event, projectId) => {
-    console.log(`[app-handlers.cjs] Handling "get-tasks" for projectId: ${projectId}`);
-    try {
-      const result = await taskService.getTasks(projectId);
-      console.log('[app-handlers.cjs] "get-tasks" result:', result);
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-      return { success: true, tasks: result.tasks };
-    } catch (error) {
-      log.error('Error getting tasks:', error);
-      console.error('[app-handlers.cjs] "get-tasks" error:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('create-task', async (event, task) => {
-    try {
-      return await taskService.createTask(task);
-    } catch (error) {
-      log.error('Error creating task:', error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle('update-task', async (event, { id, updates }) => {
-    try {
-      return await taskService.updateTask(id, updates);
-    } catch (error) {
-      log.error('Error updating task:', error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle('delete-task', async (event, id) => {
-    try {
-      return await taskService.deleteTask(id);
-    } catch (error) {
-      log.error('Error deleting task:', error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle('tasks:getProjects', async () => {
-    console.log('[app-handlers.cjs] Handling "tasks:getProjects"');
-    try {
-      const result = await taskService.getProjects();
-      console.log('[app-handlers.cjs] "tasks:getProjects" result:', result);
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-      return { success: true, projects: result.projects };
-    } catch (error) {
-      log.error('Error getting projects:', error);
-      console.error('[app-handlers.cjs] "tasks:getProjects" error:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('create-project', async (event, project) => {
-    try {
-      return await taskService.createProject(project);
-    } catch (error) {
-      log.error('Error creating project:', error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle('update-project', async (event, { id, updates }) => {
-    try {
-      return await taskService.updateProject(id, updates);
-    } catch (error) {
-      log.error('Error updating project:', error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle('delete-project', async (event, id) => {
-    try {
-      return await taskService.deleteProject(id);
-    } catch (error) {
-      log.error('Error deleting project:', error);
-      throw error;
     }
   });
 }

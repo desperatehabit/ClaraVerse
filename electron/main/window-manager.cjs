@@ -54,7 +54,7 @@ async function createMainWindow() {
     if (process.platform !== 'darwin') {
       event.preventDefault();
       mainWindow.hide();
-      const { tray } = require('./tray');
+      const { tray } = require('./tray.cjs');
       if (tray && process.platform === 'win32') {
         try {
           tray.displayBalloon({
@@ -70,7 +70,7 @@ async function createMainWindow() {
   });
 
   mainWindow.on('close', (event) => {
-    const { isQuitting, tray } = require('./tray');
+    const { isQuitting, tray } = require('./tray.cjs');
     if (!isQuitting) {
       event.preventDefault();
       mainWindow.hide();

@@ -164,8 +164,15 @@ interface TaskManagerAPI {
 }
 
 interface PersonalTaskAPI {
+  // Legacy API - deprecated in favor of taskManager
   getProjects: () => Promise<{ success: boolean; projects?: PersonalProject[]; error?: string }>;
+  createProject: (projectData: PersonalProject) => Promise<{ success: boolean; project?: PersonalProject; error?: string }>;
+  updateProject: (id: string, updates: Partial<PersonalProject>) => Promise<{ success: boolean; project?: PersonalProject; error?: string }>;
+  deleteProject: (id: string) => Promise<{ success: boolean; error?: string }>;
   getTasks: (projectId?: string) => Promise<{ success: boolean; tasks?: PersonalTask[]; error?: string }>;
+  createTask: (taskData: PersonalTask) => Promise<{ success: boolean; task?: PersonalTask; error?: string }>;
+  updateTask: (id: string, updates: Partial<PersonalTask>) => Promise<{ success: boolean; task?: PersonalTask; error?: string }>;
+  deleteTask: (id: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {
@@ -397,10 +404,79 @@ interface MCPServerTemplate {
 }
 
 interface Electron {
-  getWorkflowsPath: () => Promise<string>;
+  // System Info
+  getAppPath: () => Promise<string>;
+  getAppVersion: () => string;
+  getElectronVersion: () => string;
+  getPlatform: () => string;
+  isDev: boolean;
+
+  // Service Info
+  getServicePorts: () => Promise<{ n8nPort: number }>;
   getPythonPort: () => Promise<number>;
-  checkPythonBackend: () => Promise<{ port: number; status: string; available: boolean; }>;
-  receive: (channel: string, func: (data: any) => void) => void;
-  removeListener: (channel: string, func: (data: any) => void) => void;
+  checkPythonBackend: () => Promise<boolean>;
+  checkDockerServices: () => Promise<{
+    dockerAvailable: boolean;
+    n8nAvailable: boolean;
+    pythonAvailable: boolean;
+    message?: string;
+    ports?: {
+      python: number;
+      n8n: number;
+      ollama: number;
+    };
+  }>;
+
+  // Updates
+  checkForUpdates: () => Promise<void>;
+  getUpdateInfo: () => Promise<{
+    hasUpdate: boolean;
+    latestVersion?: string;
+    currentVersion: string;
+    releaseUrl?: string;
+    downloadUrl?: string;
+    releaseNotes?: string;
+    publishedAt?: string;
+    platform: string;
+    isOTASupported: boolean;
+    error?: string;
+  }>;
+
+  // IPC Communication
   send: (channel: string, data?: any) => void;
-} 
+  sendReactReady: () => void;
+  receive: (channel: string, callback: (data: any) => void) => void;
+  removeListener: (channel: string) => void;
+  on: (channel: string, callback: (data: any) => void) => void;
+  removeAllListeners: (channel: string) => void;
+
+  // Clipboard
+  clipboard: {
+    writeText: (text: string) => void;
+    readText: () => string;
+  };
+
+  // Tray functionality
+  hideToTray: () => void;
+  showFromTray: () => void;
+
+  // Startup settings
+  setStartupSettings: (settings: any) => Promise<{ success: boolean; error?: string }>;
+  getStartupSettings: () => Promise<any>;
+
+  // Initialization
+  getInitializationState: () => Promise<{
+    needsFeatureSelection: boolean;
+    selectedFeatures: any;
+    systemConfig: any;
+    dockerAvailable: boolean;
+    servicesStatus: {
+      llamaSwap: boolean;
+      mcp: boolean;
+      docker: boolean;
+      watchdog: boolean;
+    };
+  }>;
+  saveFeatureSelection: (features: any) => Promise<{ success: boolean; error?: string }>;
+  initializeService: (serviceName: string) => Promise<{ success: boolean; error?: string }>;
+}

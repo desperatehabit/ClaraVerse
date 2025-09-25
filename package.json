@@ -64,7 +64,9 @@
     "services": "npm run services:build",
     "db:migrate": "db-migrate up",
     "db:migrate:down": "db-migrate down",
-    "db:migrate:create": "db-migrate create"
+    "db:migrate:create": "db-migrate create",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "db:populate": "electron populate-test-data.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
@@ -120,7 +122,7 @@
     "@xterm/xterm": "^5.5.0",
     "adm-zip": "^0.5.16",
     "axios": "^1.10.0",
-    "better-sqlite3": "^12.3.0",
+    "better-sqlite3": "^12.4.1",
     "buffer": "^6.0.3",
     "chalk": "^5.3.0",
     "chart.js": "^4.4.9",
@@ -200,7 +202,7 @@
   },
   "devDependencies": {
     "@electron/notarize": "^2.5.0",
-    "@electron/rebuild": "^3.7.2",
+    "@electron/rebuild": "^4.0.1",
     "@eslint/js": "^9.9.1",
     "@tailwindcss/typography": "^0.5.10",
     "@testing-library/jest-dom": "^6.6.3",
@@ -247,7 +249,7 @@
   "build": {
     "appId": "com.clara-ai.app",
     "productName": "Clara",
-    "npmRebuild": false,
+    "npmRebuild": true,
     "buildDependenciesFromSource": false,
     "files": [
       "dist/**/*",

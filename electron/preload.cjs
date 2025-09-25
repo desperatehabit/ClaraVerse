@@ -62,7 +62,8 @@ const validChannels = [
   'tasks:deleteTask',
   'tasks:createProject',
   'tasks:updateProject',
-  'tasks:deleteProject'
+  'tasks:deleteProject',
+  'tasks:getProjects'
 ];
 
 // Add explicit logging for debugging
@@ -469,27 +470,78 @@ contextBridge.exposeInMainWorld('electronScreenShare', {
   requestScreenAccess: () => ipcRenderer.invoke('request-screen-access')
 });
 
-// Add task management API
+
+// Consolidated task management API - using taskManager as the primary API
+// personalTaskAPI is deprecated in favor of taskManager
+contextBridge.exposeInMainWorld('personalTaskAPI', {
+  // Project operations
+  getProjects: () => {
+    console.log('[preload.cjs] personalTaskAPI.getProjects: Invoking "tasks:getProjects"');
+    return ipcRenderer.invoke('tasks:getProjects');
+  },
+  createProject: (projectData) => ipcRenderer.invoke('tasks:createProject', projectData),
+  updateProject: (id, updates) => ipcRenderer.invoke('tasks:updateProject', { id, updates }),
+  deleteProject: (id) => ipcRenderer.invoke('tasks:deleteProject', id),
+  getTasks: (projectId) => {
+    console.log(`[preload.cjs] personalTaskAPI.getTasks: Invoking "get-tasks" with projectId: ${projectId}`);
+    return ipcRenderer.invoke('tasks:getTasks', projectId);
+  },
+  createTask: (taskData) => ipcRenderer.invoke('tasks:createTask', taskData),
+  updateTask: (id, updates) => ipcRenderer.invoke('tasks:updateTask', { id, updates }),
+  deleteTask: (id) => ipcRenderer.invoke('tasks:deleteTask', id)
+});
+
+// Primary task management API with full functionality
 contextBridge.exposeInMainWorld('taskManager', {
   // Project operations
-  getProjects: () => ipcRenderer.invoke('get-projects'),
-  createProject: (projectData) => ipcRenderer.invoke('create-project', projectData),
-  updateProject: (projectId, updates) => ipcRenderer.invoke('update-project', projectId, updates),
-  deleteProject: (projectId) => ipcRenderer.invoke('delete-project', projectId),
+  getProjects: () => {
+    console.log('[preload.cjs] taskManager.getProjects: Calling tasks:getProjects');
+    return ipcRenderer.invoke('tasks:getProjects');
+  },
+  createProject: (projectData) => {
+    console.log('[preload.cjs] taskManager.createProject: Calling tasks:createProject', projectData);
+    return ipcRenderer.invoke('tasks:createProject', projectData);
+  },
+  updateProject: (projectId, updates) => {
+    console.log('[preload.cjs] taskManager.updateProject: Calling tasks:updateProject', { id: projectId, updates });
+    return ipcRenderer.invoke('tasks:updateProject', { id: projectId, updates });
+  },
+  deleteProject: (projectId) => {
+    console.log('[preload.cjs] taskManager.deleteProject: Calling tasks:deleteProject', projectId);
+    return ipcRenderer.invoke('tasks:deleteProject', projectId);
+  },
 
   // Task operations
-  getTasks: (projectId) => ipcRenderer.invoke('get-tasks', projectId),
-  getAllTasks: () => ipcRenderer.invoke('get-all-tasks'),
-  createTask: (taskData) => ipcRenderer.invoke('create-task', taskData),
-  updateTask: (taskId, updates) => ipcRenderer.invoke('update-task', taskId, updates),
-  deleteTask: (taskId) => ipcRenderer.invoke('delete-task', taskId),
-  getTaskById: (taskId) => ipcRenderer.invoke('get-task-by-id', taskId),
+  getTasks: (projectId) => {
+    console.log('[preload.cjs] taskManager.getTasks: Calling tasks:getTasks', projectId);
+    return ipcRenderer.invoke('tasks:getTasks', projectId);
+  },
+  getAllTasks: () => {
+    console.log('[preload.cjs] taskManager.getAllTasks: Calling tasks:getTasks');
+    return ipcRenderer.invoke('tasks:getTasks');
+  },
+  createTask: (taskData) => {
+    console.log('[preload.cjs] taskManager.createTask: Calling tasks:createTask', taskData);
+    return ipcRenderer.invoke('tasks:createTask', taskData);
+  },
+  updateTask: (taskId, updates) => {
+    console.log('[preload.cjs] taskManager.updateTask: Calling tasks:updateTask', { id: taskId, updates });
+    return ipcRenderer.invoke('tasks:updateTask', { id: taskId, updates });
+  },
+  deleteTask: (taskId) => {
+    console.log('[preload.cjs] taskManager.deleteTask: Calling tasks:deleteTask', taskId);
+    return ipcRenderer.invoke('tasks:deleteTask', taskId);
+  },
+  getTaskById: (taskId) => {
+    console.log('[preload.cjs] taskManager.getTaskById: Calling tasks:getTask', taskId);
+    return ipcRenderer.invoke('tasks:getTask', taskId);
+  },
 
   // AI integration
   processNaturalLanguageTask: (text, projectId) => ipcRenderer.invoke('process-natural-language-task', { text, projectId }),
   breakdownTask: (taskId, options) => ipcRenderer.invoke('breakdown-task', taskId, options),
 
-  // Task event listeners
+  // Event listeners
   onTaskCreated: (callback) => {
     const subscription = (event, data) => callback(data);
     ipcRenderer.on('task-created', subscription);
@@ -530,25 +582,6 @@ contextBridge.exposeInMainWorld('taskManager', {
     ipcRenderer.on('task-breakdown-complete', subscription);
     return () => ipcRenderer.removeListener('task-breakdown-complete', subscription);
   }
-});
-
-// Add personalTaskAPI for basic personal task operations
-contextBridge.exposeInMainWorld('personalTaskAPI', {
-  // Project operations
-  getProjects: () => {
-    console.log('[preload.cjs] personalTaskAPI.getProjects: Invoking "tasks:getProjects"');
-    return ipcRenderer.invoke('tasks:getProjects');
-  },
-  createProject: (projectData) => ipcRenderer.invoke('tasks:createProject', projectData),
-  updateProject: (id, updates) => ipcRenderer.invoke('tasks:updateProject', { id, updates }),
-  deleteProject: (id) => ipcRenderer.invoke('tasks:deleteProject', id),
-  getTasks: (projectId) => {
-    console.log(`[preload.cjs] personalTaskAPI.getTasks: Invoking "get-tasks" with projectId: ${projectId}`);
-    return ipcRenderer.invoke('tasks:getTasks', projectId);
-  },
-  createTask: (taskData) => ipcRenderer.invoke('tasks:createTask', taskData),
-  updateTask: (id, updates) => ipcRenderer.invoke('tasks:updateTask', { id, updates }),
-  deleteTask: (id) => ipcRenderer.invoke('tasks:deleteTask', id)
 });
 
 // Notify main process when preload script has loaded

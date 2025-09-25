@@ -1,6 +1,7 @@
 const { app } = require('electron');
 const path = require('path');
 const log = require('electron-log');
+const fs = require('fs');
 const DockerSetup = require('../dockerSetup.cjs');
 const FeatureSelectionScreen = require('../featureSelection.cjs');
 const LlamaSwapService = require('../llamaSwapService.cjs');
@@ -17,6 +18,38 @@ const ServiceConfigurationManager = require('../serviceConfiguration.cjs');
 const { registerAllHandlers } = require('../ipc/index.cjs');
 const { createMainWindow } = require('../main/window-manager.cjs');
 const { askToStartDockerDesktop } = require('../utils/helpers.cjs');
+
+function resolveTasksDbPath(app, isProd) {
+  const envPath = process.env.CLARA_DB_PATH ? path.resolve(process.env.CLARA_DB_PATH) : null;
+  const defaultPath = path.join(app.getPath('userData'), 'clara_tasks.db');
+
+  if (envPath) {
+    console.log('[tasks][db] Using CLARA_DB_PATH:', envPath);
+    return envPath;
+  }
+
+  if (!isProd) {
+    if (!fs.existsSync(defaultPath)) {
+      const repoRoot = path.resolve('clara_tasks.db');
+      const electronDb = path.resolve(__dirname, '../database/clara_tasks.db');
+      try {
+        const seed = fs.existsSync(repoRoot) ? repoRoot : (fs.existsSync(electronDb) ? electronDb : null);
+        if (seed) {
+          fs.mkdirSync(path.dirname(defaultPath), { recursive: true });
+          fs.copyFileSync(seed, defaultPath);
+          console.log('[tasks][db] Seeded userData DB from:', seed, '->', defaultPath);
+        } else {
+          console.log('[tasks][db] No seed DB found; creating empty at:', defaultPath);
+        }
+      } catch (e) {
+        console.warn('[tasks][db] Failed seeding DB:', (e && e.message) ? e.message : e);
+      }
+    }
+  }
+
+  console.log('[tasks][db] Using DB at:', defaultPath);
+  return defaultPath;
+}
 
 let dockerSetup;
 let llamaSwapService;
@@ -57,22 +90,53 @@ async function initialize() {
     global.selectedFeatures = selectedFeatures;
     
     console.log('⚡ Fast startup mode - skipping splash screen');
-    
-    if (!global.handlersRegistered) {
-      registerAllHandlers({
-        dockerSetup,
-        llamaSwapService,
-        mcpService,
-        watchdogService,
-        serviceConfigManager,
-        centralServiceManager,
-        ipcLogger,
-        mainWindow: require('../main/window-manager.cjs').mainWindow,
-        activeDownloads: new Map(),
-        widgetService,
-      });
-      global.handlersRegistered = true;
+
+    // Initialize TaskService early so it's available for handler registration
+    let taskService;
+    try {
+      const { TaskService } = require('./taskService.cjs');
+      const isProd = app.isPackaged || process.env.NODE_ENV === 'production';
+      const dbPath = resolveTasksDbPath(app, isProd);
+      taskService = TaskService.getInstance(dbPath);
+      console.log('✅ Task Service initialized early for handler registration');
+    } catch (error) {
+      console.warn('⚠️ Task Service initialization failed, will retry later:', error.message);
     }
+
+    if (!global.handlersRegistered) {
+        console.log('🚀 Registering all IPC handlers through service initializer...');
+        console.log('📊 Global state before registration:', {
+          handlersRegistered: global.handlersRegistered,
+          needsFeatureSelection: global.needsFeatureSelection,
+          selectedFeatures: global.selectedFeatures,
+          taskServiceInitialized: !!taskService
+        });
+
+        registerAllHandlers({
+          dockerSetup,
+          llamaSwapService,
+          mcpService,
+          watchdogService,
+          serviceConfigManager,
+          centralServiceManager,
+          ipcLogger,
+          mainWindow: require('../main/window-manager.cjs').mainWindow,
+          activeDownloads: new Map(),
+          widgetService,
+          taskService,
+        });
+
+        global.handlersRegistered = true;
+        console.log('📊 Global state after registration:', {
+          handlersRegistered: global.handlersRegistered,
+          needsFeatureSelection: global.needsFeatureSelection,
+          selectedFeatures: global.selectedFeatures,
+          taskServiceInitialized: !!taskService
+        });
+        console.log('✅ IPC handlers registration completed');
+      } else {
+        console.log('⚠️ Handlers already registered, skipping registration');
+      }
     
     console.log('📱 Creating main window immediately...');
     await createMainWindow();
@@ -213,19 +277,29 @@ async function initializeInBackground(selectedFeatures) {
     }
     
     sendStatusUpdate('initializing-scheduler', { message: 'Initializing task scheduler...' });
-    let taskService;
-    try {
-      const { TaskService } = require('./taskService.cjs');
-      const dbPath = path.join(app.getPath('userData'), 'clara_tasks.db');
-      taskService = TaskService.getInstance(dbPath);
-      log.info('✅ Task Service initialized successfully');
 
+    // TaskService should already be initialized from the main initialization
+    if (taskService) {
       if (!schedulerService) {
         schedulerService = new SchedulerElectronService(mainWindow, taskService);
         log.info('✅ ClaraVerse Scheduler initialized successfully');
       }
-    } catch (error) {
-      log.error('❌ Failed to initialize Task Service or Scheduler:', error);
+    } else {
+      // Fallback: try to initialize TaskService if it wasn't done earlier
+      try {
+        const { TaskService } = require('./taskService.cjs');
+        const isProd = app.isPackaged || process.env.NODE_ENV === 'production';
+        const dbPath = resolveTasksDbPath(app, isProd);
+        taskService = TaskService.getInstance(dbPath);
+        log.info('✅ Task Service initialized in background (fallback)');
+
+        if (!schedulerService) {
+          schedulerService = new SchedulerElectronService(mainWindow, taskService);
+          log.info('✅ ClaraVerse Scheduler initialized successfully');
+        }
+      } catch (error) {
+        log.error('❌ Failed to initialize Task Service or Scheduler:', error);
+      }
     }
     
     sendStatusUpdate('ready', { message: 'All services initialized' });
@@ -290,6 +364,9 @@ async function initializeServicesWithoutDocker(selectedFeatures, sendStatusUpdat
   }
 }
 
+// TaskService will be initialized in the initialize() function
+let taskService;
+
 module.exports = {
   initialize,
   dockerSetup,
@@ -303,4 +380,5 @@ module.exports = {
   serviceConfigManager,
   centralServiceManager,
   ipcLogger,
+  taskService, // Export taskService instance
 };

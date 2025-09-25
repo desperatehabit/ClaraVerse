@@ -1,34 +1,26 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { CheckSquare, Square, Clock, AlertCircle, Loader2 } from 'lucide-react';
-import { useTaskStore } from '../state/taskStore';
 import { PersonalTask } from '../types';
 
 interface TaskListProps {
+  tasks: PersonalTask[];
+  loading: boolean;
+  error: string | null;
+  selectedProjectId: string | null;
   onTaskSelect?: (taskId: string) => void;
   onTaskUpdate?: (taskId: string, updates: Partial<PersonalTask>) => void;
   onTaskDelete?: (taskId: string) => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({
+  tasks,
+  loading,
+  error,
+  selectedProjectId,
   onTaskSelect,
   onTaskUpdate,
-  onTaskDelete
+  onTaskDelete,
 }) => {
-  const {
-    tasks,
-    loading,
-    error,
-    fetchTasks,
-    selectedProjectId
-  } = useTaskStore();
-// Fetch tasks on component mount
-useEffect(() => {
-  fetchTasks();
-}, [fetchTasks]);
-
-const filteredTasks = selectedProjectId
-  ? tasks.filter((task) => task.project_id === selectedProjectId)
-  : tasks;
 
 // Show loading state
 if (loading) {
@@ -83,7 +75,7 @@ const getPriorityIcon = (priority: string) => {
     }
   };
 
-  if (filteredTasks.length === 0) {
+  if (tasks.length === 0) {
     return (
       <div className="flex-1 glassmorphic rounded-r-xl p-8 bg-gradient-to-br from-white/20 via-white/10 to-white/5 dark:from-gray-900/40 dark:via-gray-900/30 dark:to-gray-900/20 border border-white/30 dark:border-gray-700/50 shadow-xl">
         <div className="text-center py-12">
@@ -108,7 +100,7 @@ const getPriorityIcon = (priority: string) => {
   return (
     <div className="flex-1 glassmorphic rounded-r-xl p-6 bg-gradient-to-br from-white/15 via-white/10 to-white/5 dark:from-gray-900/35 dark:via-gray-900/25 dark:to-gray-900/15 border border-white/25 dark:border-gray-700/40 shadow-lg">
       <div className="space-y-3">
-        {filteredTasks.map((task) => (
+        {tasks.map((task) => (
           <div
             key={task.id}
             className="glassmorphic rounded-lg p-4 border border-white/30 dark:border-gray-600/40 hover:border-sakura-300/50 dark:hover:border-sakura-400/30 bg-white/20 dark:bg-gray-800/25 hover:bg-white/30 dark:hover:bg-gray-800/35 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"

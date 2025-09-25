@@ -12,20 +12,42 @@ const { registerWatchdogHandlers } = require('./watchdog-handlers.cjs');
 const { registerPersonalTaskHandlers } = require('./task-handlers.cjs');
 
 function registerAllHandlers(services) {
-  const { dockerSetup, llamaSwapService, mcpService, watchdogService, serviceConfigManager, centralServiceManager, ipcLogger, mainWindow, activeDownloads } = services;
+   console.log('🔧 Registering all IPC handlers...');
+   console.log('📋 Services received for handler registration:', {
+     hasServices: !!services,
+     dockerSetup: !!services?.dockerSetup,
+     llamaSwapService: !!services?.llamaSwapService,
+     mcpService: !!services?.mcpService,
+     watchdogService: !!services?.watchdogService,
+     serviceConfigManager: !!services?.serviceConfigManager,
+     centralServiceManager: !!services?.centralServiceManager,
+     ipcLogger: !!services?.ipcLogger,
+     mainWindow: !!services?.mainWindow,
+     activeDownloads: !!services?.activeDownloads,
+     widgetService: !!services?.widgetService
+   });
 
-  registerDockerContainerHandlers(dockerSetup);
-  registerLlamaSwapHandlers(llamaSwapService, ipcLogger);
-  registerMCPHandlers(mcpService, serviceConfigManager, centralServiceManager);
-  registerModelManagerHandlers(llamaSwapService, mainWindow, activeDownloads);
-  registerComfyUIHandlers(dockerSetup, serviceConfigManager);
-  registerN8NHandlers(dockerSetup, serviceConfigManager);
-  registerPythonBackendHandlers(dockerSetup, serviceConfigManager);
-  registerWidgetServiceHandlers(services.widgetService);
-  registerServiceConfigurationHandlers(serviceConfigManager, centralServiceManager);
-  registerAppHandlers(ipcLogger, dockerSetup, llamaSwapService, mcpService, watchdogService);
+   const { dockerSetup, llamaSwapService, mcpService, watchdogService, serviceConfigManager, centralServiceManager, ipcLogger, mainWindow, activeDownloads, taskService } = services;
+
+   try {
+    registerAppHandlers(ipcLogger, dockerSetup, llamaSwapService, mcpService, watchdogService, taskService);
+    registerDockerContainerHandlers(dockerSetup);
+    registerLlamaSwapHandlers(llamaSwapService, ipcLogger);
+    registerMCPHandlers(mcpService, serviceConfigManager, centralServiceManager);
+    registerModelManagerHandlers(llamaSwapService, mainWindow, activeDownloads);
+    registerComfyUIHandlers(dockerSetup, serviceConfigManager);
+    registerN8NHandlers(dockerSetup, serviceConfigManager);
+    registerPythonBackendHandlers(dockerSetup, serviceConfigManager);
+    registerWidgetServiceHandlers(services.widgetService);
+    registerServiceConfigurationHandlers(serviceConfigManager, centralServiceManager);
     registerWatchdogHandlers(watchdogService);
-  registerPersonalTaskHandlers();
+
+    console.log('📋 Registering personal task handlers...');
+    registerPersonalTaskHandlers(taskService);
+    console.log('✅ All IPC handlers registered successfully');
+  } catch (error) {
+    console.error('❌ Error registering IPC handlers:', error);
+  }
 }
 
 module.exports = {
