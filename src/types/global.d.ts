@@ -28,6 +28,13 @@ declare global {
     electron: ElectronAPI;
     taskManager: TaskManagerAPI;
     personalTaskAPI: TaskManagerAPI; // deprecated but kept for backward compatibility
+    mcpService?: {
+      invoke: (toolName: string, params: any) => Promise<any>;
+      registerServer: (serverName: string, config: any) => Promise<void>;
+      unregisterServer: (serverName: string) => Promise<void>;
+      listServers: () => Promise<string[]>;
+      startPreviouslyRunning: () => Promise<any[]>;
+    };
   }
 }
 

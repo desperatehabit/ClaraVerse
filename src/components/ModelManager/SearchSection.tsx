@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import ModelCard from './ModelCard';
 import { HuggingFaceModel, DownloadProgress } from './types';
+import VoiceControlButton from '../common/VoiceControlButton';
 
 interface SearchSectionProps {
   onDownload: (modelId: string, fileName: string) => void;
@@ -75,14 +76,29 @@ const SearchSection: React.FC<SearchSectionProps> = ({
       </div>
       
       <div className="flex gap-2 mb-6">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && searchModels()}
-          placeholder="Search for models (e.g., 'llama', 'qwen', 'phi')"
-          className="flex-1 px-4 py-3 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-        />
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && searchModels()}
+            placeholder="Search for models (e.g., 'llama', 'qwen', 'phi')"
+            className="w-full px-4 py-3 pr-12 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+          />
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+            <VoiceControlButton
+              mode="listen"
+              size="sm"
+              variant="ghost"
+              onTranscription={(text) => {
+                setSearchQuery(text);
+                // Auto-search when voice input is received
+                setTimeout(() => searchModels(), 100);
+              }}
+              tooltip="Voice search for models"
+            />
+          </div>
+        </div>
         <button
           onClick={searchModels}
           disabled={isSearching || !searchQuery.trim()}

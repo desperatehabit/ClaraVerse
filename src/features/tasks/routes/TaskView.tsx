@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ProjectSidebar from '../components/ProjectSidebar';
 import TaskHeader from '../components/TaskHeader';
 import TaskList from '../components/TaskList';
-import AddTaskForm from '../components/AddTaskForm';
+import { QuickAddTask } from '../components/QuickAddTask';
 import { useTaskStore } from '../state/taskStore';
 import TaskDetailModal from '../components/TaskDetailModal';
 import { Task } from '../../../types/task';
@@ -10,24 +10,24 @@ import { PersonalTask } from '../types';
 
 // Helper function to convert PersonalTask to Task
 const toTask = (personalTask: PersonalTask): Task => ({
-  id: Number(personalTask.id), // Convert id to number
+  id: personalTask.id,
   title: personalTask.title,
   description: personalTask.description,
   priority: personalTask.priority.charAt(0).toUpperCase() + personalTask.priority.slice(1) as 'Low' | 'Medium' | 'High' | 'Urgent',
   status: personalTask.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) as 'To-do' | 'In Progress' | 'Completed' | 'Cancelled',
   due_date: personalTask.due_date,
-  projectId: personalTask.project_id ? Number(personalTask.project_id) : undefined,
+  projectId: personalTask.project_id,
 });
 
-// Helper function to convert Task back to Partial<PersonalTask> for updating
-const fromTask = (task: Task): Partial<PersonalTask> => ({
+// Helper function to convert Task to PersonalTask
+const fromTask = (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>, selectedProjectId: string | null): Omit<PersonalTask, 'id' | 'created_at' | 'updated_at'> => ({
   title: task.title,
   description: task.description,
   priority: task.priority.toLowerCase() as 'low' | 'medium' | 'high' | 'urgent',
-  status: task.status.toLowerCase().replace(' ', '_') as 'todo' | 'in_progress' | 'completed' | 'cancelled',
-  due_date: task.due_date,
+  status: task.status.replace(' ', '_').toLowerCase() as 'todo' | 'in_progress' | 'completed' | 'cancelled',
+  due_date: task.due_date || undefined,
+  project_id: task.projectId || selectedProjectId || undefined,
 });
-
 
 export const TaskView: React.FC = () => {
   const {
@@ -37,10 +37,13 @@ export const TaskView: React.FC = () => {
     loading,
     error: storeError,
     fetchTasks,
+    deleteTask,
+    createTask,
     updateTask,
+    isAddTaskModalOpen,
+    closeAddTaskModal,
   } = useTaskStore();
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTasks();
@@ -58,14 +61,34 @@ export const TaskView: React.FC = () => {
     ? tasks.find((t) => t.id === editingTaskId)
     : null;
 
-  const handleSaveTask = async (updatedTask: Task) => {
-    if (!editingTaskId) return;
-    setError(null);
+  const handleDeleteTask = async (taskId: string) => {
     try {
-      await updateTask(editingTaskId, fromTask(updatedTask));
+      await deleteTask(taskId);
       setEditingTaskId(null);
-    } catch (err) {
-      setError('Failed to save changes.');
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+    }
+  };
+
+  const handleCreateTask = async (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      await createTask(fromTask(task, selectedProjectId));
+      setEditingTaskId(null);
+      closeAddTaskModal();
+    } catch (error) {
+      console.error('Failed to save task:', error);
+    }
+  };
+
+  const handleUpdateTask = async (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>, id?: string) => {
+    try {
+      if (id) {
+        await updateTask(id, fromTask(task, selectedProjectId));
+      }
+      setEditingTaskId(null);
+      closeAddTaskModal();
+    } catch (error) {
+      console.error('Failed to save task:', error);
     }
   };
 
@@ -76,6 +99,9 @@ export const TaskView: React.FC = () => {
         <TaskHeader
           selectedProject={selectedProject}
         />
+        <div className="p-4">
+          <QuickAddTask />
+        </div>
         <TaskList
           tasks={filteredTasks}
           loading={loading}
@@ -83,17 +109,20 @@ export const TaskView: React.FC = () => {
           selectedProjectId={selectedProjectId}
           onTaskSelect={setEditingTaskId}
         />
-        <AddTaskForm />
       </div>
       {editingTask && (
         <TaskDetailModal
           task={toTask(editingTask)}
-          onClose={() => {
-            setEditingTaskId(null);
-            setError(null);
-          }}
-          onSave={handleSaveTask}
-          error={error || undefined}
+          onClose={() => setEditingTaskId(null)}
+          onSave={handleUpdateTask}
+          onDelete={handleDeleteTask}
+        />
+      )}
+      {isAddTaskModalOpen && (
+        <TaskDetailModal
+          onClose={closeAddTaskModal}
+          onSave={handleCreateTask}
+          projectId={selectedProjectId}
         />
       )}
     </div>

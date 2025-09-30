@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Upload, 
-  Package, 
-  Image, 
-  FileText, 
-  Code2, 
+import {
+  Users,
+  Upload,
+  Package,
+  Image,
+  FileText,
+  Code2,
   Search,
   Loader2,
   Database,
@@ -18,6 +18,7 @@ import {
   Download,
   Eye
 } from 'lucide-react';
+import VoiceControlButton from './common/VoiceControlButton';
 import { CustomNodeDefinition } from '../types/agent/types';
 import { CommunityService, LocalUserManager, CommunityResource } from '../services/communityService';
 import UserSetupModal from './UserSetupModal';
@@ -1189,8 +1190,19 @@ const Community: React.FC<CommunityProps> = ({ onPageChange }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 disabled={!supabaseConnected}
-                className="w-full pl-10 pr-4 py-2 glassmorphic border border-white/20 dark:border-gray-600/30 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-sakura-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="w-full pl-10 pr-12 py-2 glassmorphic border border-white/20 dark:border-gray-600/30 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-sakura-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               />
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <VoiceControlButton
+                  mode="listen"
+                  size="sm"
+                  variant="ghost"
+                  onTranscription={(text) => {
+                    setSearchQuery(text);
+                  }}
+                  tooltip="Voice search"
+                />
+              </div>
             </div>
             <select
               value={sortBy}

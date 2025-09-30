@@ -1,116 +1,155 @@
 import React, { useState, useEffect } from 'react';
 import { Task } from '../../../types/task';
+import { formatDateForInput } from '../../../utils/date';
+import { X } from 'lucide-react';
+import { VoiceInputField } from '../../../components/Clara_Components/VoiceInputField';
 
 interface TaskDetailModalProps {
-  task: Task;
+  task?: Task;
   onClose: () => void;
-  onSave: (task: Task) => void;
-  error?: string;
+  onSave: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>, id?: string) => void;
+  onDelete?: (id: string) => void;
+  projectId?: string | null;
 }
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose, onSave, error }) => {
-  const [formData, setFormData] = useState<Task>(task);
+const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose, onSave, onDelete, projectId }) => {
+  const [title, setTitle] = useState(task?.title || '');
+  const [description, setDescription] = useState(task?.description || '');
+  const [priority, setPriority] = useState(task?.priority || 'Medium');
+  const [status, setStatus] = useState(task?.status || 'To-do');
+  const [dueDate, setDueDate] = useState(task?.due_date ? formatDateForInput(task.due_date) : '');
 
   useEffect(() => {
-    setFormData(task);
+    setTitle(task?.title || '');
+    setDescription(task?.description || '');
+    setPriority(task?.priority || 'Medium');
+    setStatus(task?.status || 'To-do');
+    if (task?.due_date) {
+      setDueDate(formatDateForInput(task.due_date));
+    } else {
+      setDueDate('');
+    }
   }, [task]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev: Task) => ({ ...prev, [name]: value }));
+  const handleSave = () => {
+    onSave({
+      title,
+      description,
+      priority,
+      status,
+      due_date: dueDate,
+      projectId: task?.projectId || projectId || undefined,
+    }, task?.id);
   };
 
-  const handleSave = () => {
-    onSave(formData);
+  const handleDelete = () => {
+    if (task && onDelete && window.confirm('Are you sure you want to delete this task?')) {
+      onDelete(String(task.id));
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50">
+      <div className="bg-white/10 dark:bg-gray-900/30 backdrop-blur-lg border border-white/20 dark:border-gray-700/50 shadow-lg rounded-xl p-6 w-full max-w-md text-gray-900 dark:text-white">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Edit Task</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+          <h2 className="text-lg font-semibold">{task ? 'Edit Task' : 'Create Task'}</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">
+            <X size={24} />
+          </button>
         </div>
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        <form>
+          <div className="mb-4">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+            <VoiceInputField
+              value={title}
+              onChange={setTitle}
+              placeholder="Enter task title..."
+              clearOnTranscription={false}
+              focusAfterTranscription={true}
+              containerClassName="w-full"
+              buttonPosition="overlay"
+              size="sm"
+              tooltip="Voice input for task title"
+              inputProps={{
+                id: "title",
+                className: "w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100 transition-colors"
+              }}
             />
           </div>
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description || ''}
-              onChange={handleChange}
-              rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          <div className="mb-4">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+            <VoiceInputField
+              value={description || ''}
+              onChange={(value) => setDescription(value)}
+              placeholder="Enter task description..."
+              multiline={true}
+              clearOnTranscription={false}
+              focusAfterTranscription={true}
+              containerClassName="w-full"
+              buttonPosition="overlay"
+              size="sm"
+              tooltip="Voice input for task description"
+              textareaProps={{
+                id: "description",
+                rows: 4,
+                className: "w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100 transition-colors resize-none"
+              }}
             />
           </div>
-          <div>
-            <label htmlFor="priority" className="block text-sm font-medium text-gray-700">Priority</label>
-            <select
-              id="priority"
-              name="priority"
-              value={formData.priority}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            >
-              <option>Low</option>
-              <option>Medium</option>
-              <option>High</option>
-              <option>Urgent</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
+              <select
+                id="priority"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as Task['priority'])}
+                className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <select
+                id="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as Task['status'])}
+                className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+              >
+                <option value="To-do">To-do</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
-            <select
-              id="status"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            >
-              <option>To-do</option>
-              <option>In Progress</option>
-              <option>Completed</option>
-              <option>Cancelled</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="due_date" className="block text-sm font-medium text-gray-700">Due Date</label>
+          <div className="mb-6">
+            <label htmlFor="due_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Date</label>
             <input
               type="date"
               id="due_date"
-              name="due_date"
-              value={formData.due_date ? new Date(formData.due_date).toISOString().split('T') : ''}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100 transition-colors"
             />
           </div>
-        </div>
-        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-        <div className="mt-6 flex justify-end space-x-4">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Save
-          </button>
-        </div>
+          <div className="flex justify-end space-x-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">Cancel</button>
+            {task && onDelete && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete
+              </button>
+            )}
+            <button type="button" onClick={handleSave} className="px-4 py-2 bg-sakura-500 text-white rounded-lg hover:bg-sakura-600">Save</button>
+          </div>
+        </form>
       </div>
     </div>
   );

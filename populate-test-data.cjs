@@ -60,6 +60,18 @@ function populateTestData() {
       priority: 'medium'
     });
 
+    taskService.createTask({
+      title: 'Review PRs',
+      description: 'Review pull requests from the team.',
+      priority: 'medium'
+    });
+
+    taskService.createTask({
+      title: 'Clean the house',
+      description: 'Vacuum, dust, and do laundry.',
+      priority: 'low'
+    });
+
     console.log('✅ Test data populated successfully.');
   } catch (error) {
     console.error('❌ Error populating test data:', error);

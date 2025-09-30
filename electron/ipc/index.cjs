@@ -10,6 +10,7 @@ const { registerServiceConfigurationHandlers } = require('./service-config-handl
 const { registerAppHandlers } = require('./app-handlers.cjs');
 const { registerWatchdogHandlers } = require('./watchdog-handlers.cjs');
 const { registerPersonalTaskHandlers } = require('./task-handlers.cjs');
+const { registerVoiceHandlers } = require('./voice-handlers.cjs');
 
 function registerAllHandlers(services) {
    console.log('🔧 Registering all IPC handlers...');
@@ -24,10 +25,11 @@ function registerAllHandlers(services) {
      ipcLogger: !!services?.ipcLogger,
      mainWindow: !!services?.mainWindow,
      activeDownloads: !!services?.activeDownloads,
-     widgetService: !!services?.widgetService
+     widgetService: !!services?.widgetService,
+     voiceAgent: !!services?.voiceAgent
    });
 
-   const { dockerSetup, llamaSwapService, mcpService, watchdogService, serviceConfigManager, centralServiceManager, ipcLogger, mainWindow, activeDownloads, taskService } = services;
+   const { dockerSetup, llamaSwapService, mcpService, watchdogService, serviceConfigManager, centralServiceManager, ipcLogger, mainWindow, activeDownloads, taskService, voiceAgent } = services;
 
    try {
     registerAppHandlers(ipcLogger, dockerSetup, llamaSwapService, mcpService, watchdogService, taskService);
@@ -44,6 +46,9 @@ function registerAllHandlers(services) {
 
     console.log('📋 Registering personal task handlers...');
     registerPersonalTaskHandlers(taskService);
+
+    console.log('🎤 Registering voice handlers...');
+    registerVoiceHandlers(voiceAgent);
     console.log('✅ All IPC handlers registered successfully');
   } catch (error) {
     console.error('❌ Error registering IPC handlers:', error);

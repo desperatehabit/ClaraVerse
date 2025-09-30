@@ -6,6 +6,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import DocumentUpload from './DocumentUpload';
+import { VoiceInputButton } from '../Clara_Components/VoiceInputButton';
 
 interface ChatMessage {
   id: string;
@@ -192,14 +193,20 @@ const NotebookChat: React.FC<NotebookChatProps> = ({
   // Handle send message
   const handleSendMessage = () => {
     if (!inputMessage.trim() || isLoading) return;
-    
+
     onSendMessage(inputMessage.trim());
     setInputMessage('');
-    
+
     // Auto-resize textarea
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
+  };
+
+  // Handle voice transcription
+  const handleVoiceTranscription = (transcribedText: string) => {
+    const newMessage = inputMessage + (inputMessage ? ' ' : '') + transcribedText;
+    setInputMessage(newMessage);
   };
 
   // Handle key press
@@ -426,8 +433,19 @@ const NotebookChat: React.FC<NotebookChatProps> = ({
               }}
             />
             
-            {/* Send Button - Clara Style */}
+            {/* Action Buttons - Clara Style */}
             <div className="absolute right-0 bottom-2 flex items-center gap-2">
+              {/* Voice Input Button */}
+              <VoiceInputButton
+                onTranscription={handleVoiceTranscription}
+                disabled={isLoading || !isBackendHealthy || completedDocumentCount === 0}
+                size="sm"
+                tooltip="Voice input for chat"
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                maxDuration={60000} // 1 minute max for notebook chat
+              />
+
+              {/* Send Button */}
               <button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading || !isBackendHealthy || completedDocumentCount === 0}

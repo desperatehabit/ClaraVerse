@@ -150,6 +150,17 @@ function registerPersonalTaskHandlers(taskServiceInstance) {
       }
     });
 
+    ipcMain.handle('tasks:processNaturalLanguageTask', async (event, text) => {
+      try {
+        console.log('📋 Processing natural language task via TaskService...', text);
+        const result = await taskService.processNaturalLanguageTask(text);
+        return { success: true, data: result };
+      } catch (error) {
+        console.error('❌ Error in tasks:processNaturalLanguageTask:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
     console.log('✅ All personal task handlers registered successfully');
   } catch (error) {
     console.error('❌ Failed to register personal task handlers:', error);

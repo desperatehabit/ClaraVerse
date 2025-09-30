@@ -65,7 +65,7 @@ let serviceConfigManager;
 let centralServiceManager;
 let ipcLogger;
 
-async function initialize() {
+async function initialize(voiceAgent) {
   try {
     console.log('🚀 Starting application initialization (fast mode)');
     
@@ -124,6 +124,7 @@ async function initialize() {
           activeDownloads: new Map(),
           widgetService,
           taskService,
+          voiceAgent,
         });
 
         global.handlersRegistered = true;

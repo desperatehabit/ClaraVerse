@@ -1,9 +1,11 @@
-const { app, globalShortcut } = require('electron');
+const { app, globalShortcut, ipcMain } = require('electron');
 const log = require('electron-log');
 const { createMainWindow } = require('./window-manager.cjs');
 const { initialize } = require('../services/service-initializer.cjs');
 const { createTray } = require('./tray.cjs');
 const { registerGlobalShortcuts } = require('./shortcuts.cjs');
+const { fork } = require('child_process');
+const path = require('path');
 
 function setupAppLifecycle() {
   // Single instance lock
@@ -37,9 +39,23 @@ function setupAppLifecycle() {
 
   app.whenReady().then(async () => {
     await initialize();
+
+    // Start the LiveKit agent in a separate process
+    const agentPath = path.resolve(__dirname, '../services/voice/ClaraVoiceAgent.cjs');
+    const roomName = `clara-voice-${Math.random().toString(36).substring(7)}`;
+    const token = 'your-dev-token'; // Replace with a valid token
+    const agentProcess = fork(agentPath, [JSON.stringify({ roomName, token })], { stdio: 'inherit' });
+
+    ipcMain.handle('voice:get-room-name', () => roomName);
+
+    agentProcess.on('exit', (code) => {
+      log.info(`Voice agent process exited with code ${code}`);
+    });
+
+    // Create tray
     createTray();
     registerGlobalShortcuts();
-    log.info('Application initialization complete with global shortcuts registered');
+    log.info('Application initialization complete with voice service and global shortcuts registered');
   });
 
   app.on('window-all-closed', async () => {
@@ -109,7 +125,12 @@ function setupAppLifecycle() {
       if (dockerSetup) {
         await dockerSetup.stop();
       }
-      
+
+      // Cleanup voice service
+      if (agentProcess) {
+        agentProcess.kill();
+      }
+
       if (process.platform !== 'darwin') {
         app.quit();
       }

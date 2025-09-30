@@ -4,10 +4,10 @@ import Topbar from './Topbar';
 import { db } from '../db';
 import { indexedDBService } from '../services/indexedDB';
 import { GalleryImage } from '../types';
-import { 
-  Search, 
-  Grid3X3, 
-  LayoutGrid, 
+import {
+  Search,
+  Grid3X3,
+  LayoutGrid,
   Download,
   Heart,
   Share2,
@@ -22,6 +22,7 @@ import {
   Edit3,
   Check
 } from 'lucide-react';
+import VoiceControlButton from './common/VoiceControlButton';
 
 // Extend db with fallback methods if not available
 if (!(db as any).getStorageItems) {
@@ -492,8 +493,19 @@ const Gallery: React.FC<GalleryProps> = ({
                   placeholder="Search your creations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white/70 dark:bg-gray-800/70 border border-gray-200/50 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sakura-500/50 focus:border-sakura-500/50 backdrop-blur-sm transition-all duration-200"
+                  className="w-full pl-12 pr-12 py-3 bg-white/70 dark:bg-gray-800/70 border border-gray-200/50 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sakura-500/50 focus:border-sakura-500/50 backdrop-blur-sm transition-all duration-200"
                 />
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                  <VoiceControlButton
+                    mode="listen"
+                    size="sm"
+                    variant="ghost"
+                    onTranscription={(text) => {
+                      setSearchQuery(text);
+                    }}
+                    tooltip="Voice search for images"
+                  />
+                </div>
               </div>
               
               {/* Filters */}
@@ -719,12 +731,25 @@ const Gallery: React.FC<GalleryProps> = ({
                     </div>
                     {isEditingPrompt ? (
                       <div className="space-y-2">
-                        <textarea
-                          value={editedPrompt}
-                          onChange={(e) => setEditedPrompt(e.target.value)}
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
-                          rows={4}
-                        />
+                        <div className="relative">
+                          <textarea
+                            value={editedPrompt}
+                            onChange={(e) => setEditedPrompt(e.target.value)}
+                            className="w-full p-3 pr-12 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
+                            rows={4}
+                          />
+                          <div className="absolute right-2 top-2">
+                            <VoiceControlButton
+                              mode="listen"
+                              size="sm"
+                              variant="ghost"
+                              onTranscription={(text) => {
+                                setEditedPrompt(text);
+                              }}
+                              tooltip="Voice input for prompt editing"
+                            />
+                          </div>
+                        </div>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={saveEditedPrompt}

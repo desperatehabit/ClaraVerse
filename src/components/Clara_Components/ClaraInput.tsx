@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { 
-  Image as ImageIcon, 
-  File, 
-  Wrench, 
-  Zap, 
-  Database, 
-  Mic, 
-  Settings, 
-  Send, 
+import {
+  Image as ImageIcon,
+  File,
+  Wrench,
+  Zap,
+  Database,
+  Mic,
+  Settings,
+  Send,
   Plus,
   Paperclip,
   Bot,
@@ -16,6 +16,7 @@ import {
   Square,
   Loader2
 } from 'lucide-react';
+import { VoiceInputButton } from './VoiceInputButton';
 
 const ClaraInput: React.FC = () => {
   const [input, setInput] = useState('');
@@ -39,6 +40,16 @@ const ClaraInput: React.FC = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleVoiceTranscription = (transcribedText: string) => {
+    // Append voice transcription to existing input
+    const newInput = input + (input ? ' ' : '') + transcribedText;
+    setInput(newInput);
+    // Auto-send if processing is not active
+    if (!isProcessing && newInput.trim()) {
+      setTimeout(() => handleSend(), 500);
     }
   };
 
@@ -148,15 +159,14 @@ const ClaraInput: React.FC = () => {
                     </button>
 
                     {/* Voice Recording Button */}
-                    <button
-                      className="group p-2 rounded-lg hover:bg-sakura-50 dark:hover:bg-sakura-100/5 text-gray-600 dark:text-gray-400 transition-colors relative"
-                      title="Voice Input"
-                    >
-                      <Mic className="w-5 h-5" />
-                      <div className="absolute left-1/2 -translate-x-1/2 -top-8 px-2 py-0.5 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                        Voice Input
-                      </div>
-                    </button>
+                    <VoiceInputButton
+                      onTranscription={handleVoiceTranscription}
+                      size="md"
+                      tooltip="Voice input for chat"
+                      className="group p-2 rounded-lg hover:bg-sakura-50 dark:hover:bg-sakura-100/5 text-gray-600 dark:text-gray-400 transition-colors"
+                      disabled={isProcessing}
+                      maxDuration={30000} // 30 second max for chat
+                    />
 
                     {/* Model Config Button */}
                     <button

@@ -4,6 +4,7 @@ import { useTheme, ThemeMode } from '../hooks/useTheme';
 import UserProfileButton from './common/UserProfileButton';
 import NotificationPanel from './common/NotificationPanel';
 import SystemMonitor from './common/SystemMonitor';
+import VoiceStatusButton from './common/VoiceStatusButton';
 import { db } from '../db';
 
 interface TopbarProps {
@@ -200,7 +201,8 @@ const Topbar = ({
           </button>
         )}
         
-        <button 
+        <VoiceStatusButton onToggleVoice={() => {}} />
+        <button
           onClick={cycleTheme}
           className="p-2 rounded-lg hover:bg-sakura-50 dark:hover:bg-sakura-100/10 transition-colors"
           aria-label="Toggle theme"

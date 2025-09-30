@@ -27,6 +27,11 @@ from Speech2Text import Speech2Text
 # Import Text2Speech
 from Text2Speech import Text2Speech
 
+# Import voice modules
+from voice_settings import get_voice_settings_manager, setup_voice_settings_endpoints
+from clara_voice_agent import ClaraVoiceAgent, VoiceConfig, load_voice_config
+from clara_task_processor import process_voice_command_standalone, get_voice_help
+
 # LightRAG imports
 try:
     from lightrag import LightRAG, QueryParam
@@ -3226,6 +3231,81 @@ async def get_tts_voices():
     except Exception as e:
         logger.error(f"Error getting TTS voices: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting TTS voices: {str(e)}")
+
+# Voice command processing endpoint
+@app.post("/voice/process-command")
+async def process_voice_command(request: dict):
+    """Process a voice command and return response"""
+    try:
+        command = request.get("command", "")
+        if not command:
+            raise HTTPException(status_code=400, detail="Command text is required")
+
+        result = await process_voice_command_standalone(command)
+
+        return {
+            "status": "success",
+            "command": command,
+            "response": result,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Error processing voice command: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing command: {str(e)}")
+
+@app.get("/voice/help")
+async def get_voice_help_endpoint():
+    """Get help information for voice commands"""
+    try:
+        help_text = get_voice_help()
+        return {
+            "status": "success",
+            "help": help_text,
+            "available_commands": [
+                "create task", "complete task", "list tasks", "delete task",
+                "read file", "write file", "list files", "open website",
+                "search web", "launch app", "close app"
+            ]
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting voice help: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting help: {str(e)}")
+
+@app.get("/voice/status")
+async def get_voice_status():
+    """Get voice system status"""
+    try:
+        settings_manager = get_voice_settings_manager()
+
+        return {
+            "status": "ready",
+            "settings_loaded": True,
+            "current_tts_provider": settings_manager.settings.tts.provider.value,
+            "current_stt_provider": settings_manager.settings.stt.provider.value,
+            "api_keys_configured": {
+                "tts": bool(settings_manager.settings.tts.api_key),
+                "stt": bool(settings_manager.settings.stt.api_key)
+            },
+            "features_enabled": {
+                "task_management": settings_manager.settings.integration.enable_task_management,
+                "memory_integration": settings_manager.settings.integration.enable_memory_integration,
+                "voice_activity_detection": settings_manager.settings.behavior.enable_voice_activity_detection,
+                "interruptions": settings_manager.settings.behavior.enable_interruptions
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting voice status: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting status: {str(e)}")
+
+# Initialize voice settings endpoints
+try:
+    setup_voice_settings_endpoints()
+    logger.info("Voice settings endpoints initialized")
+except Exception as e:
+    logger.error(f"Failed to initialize voice settings endpoints: {e}")
 
 # Handle graceful shutdown
 def handle_exit(signum, frame):

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { XCircle, Send, Bot, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import VoiceControlButton from '../common/VoiceControlButton';
 
 interface QuickChatWidgetProps {
   id: string;
@@ -73,15 +74,15 @@ const QuickChatWidget: React.FC<QuickChatWidgetProps> = ({ id, onRemove }) => {
     try {
       // Prepare messages array with system prompt and pre-prompt if they exist
       const apiMessages: ChatMessage[] = [];
-      
+
       // Add system prompt if available
       if (config.systemPrompt.trim()) {
         apiMessages.push({ role: 'system', content: config.systemPrompt.trim() });
       }
-      
+
       // Add conversation history
       apiMessages.push(...messages);
-      
+
       // Add pre-prompt if available
       if (config.prePrompt.trim()) {
         apiMessages.push({ role: 'user', content: config.prePrompt.trim() + "\n\n" + userMessage.content });
@@ -142,6 +143,12 @@ const QuickChatWidget: React.FC<QuickChatWidgetProps> = ({ id, onRemove }) => {
       setError('Failed to get response from Ollama');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVoiceTranscription = (transcribedText: string) => {
+    if (transcribedText.trim()) {
+      setInput(transcribedText.trim());
     }
   };
 
@@ -231,14 +238,27 @@ const QuickChatWidget: React.FC<QuickChatWidgetProps> = ({ id, onRemove }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex gap-2 mt-auto">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-sm bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              disabled={loading}
-            />
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message..."
+                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10"
+                disabled={loading}
+              />
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <VoiceControlButton
+                  mode="listen"
+                  size="sm"
+                  variant="ghost"
+                  onTranscription={(text) => {
+                    setInput(text);
+                  }}
+                  tooltip="Voice input for chat"
+                />
+              </div>
+            </div>
             <button
               type="submit"
               className="px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

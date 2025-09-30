@@ -1,5 +1,6 @@
-const Database = require('better-sqlite3');
+ const Database = require('better-sqlite3');
 const crypto = require('crypto');
+const { llamaService } = require('../centralServiceManager.cjs');
 
 class TaskService {
   constructor(dbPath) {
@@ -29,12 +30,27 @@ class TaskService {
       this.db.pragma('foreign_keys = ON');
       this.db.pragma('journal_mode = WAL');
       this.createTablesIfNotExist();
+      this.runMigrations();
       this.dbInitialized = true;
       console.log(`✅ TaskService database initialized successfully.`);
     } catch (error) {
       console.error('❌ Failed to initialize TaskService database:', error.message);
       this.dbInitialized = false;
       throw new Error(`Database initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  runMigrations() {
+    try {
+      const version = this.db.pragma('user_version', { simple: true });
+      if (version < 1) {
+        // this.db.exec('ALTER TABLE tasks ADD COLUMN due_date TEXT');
+        this.db.pragma('user_version = 1');
+        console.log('✅ Database migration to version 1 completed successfully');
+      }
+    } catch (error) {
+      console.error('❌ Failed to run database migrations:', error);
+      throw error;
     }
   }
 
@@ -56,11 +72,12 @@ class TaskService {
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS tasks (
           id TEXT PRIMARY KEY,
-          project_id TEXT NOT NULL,
+          project_id TEXT,
           title TEXT NOT NULL,
           description TEXT,
           priority TEXT DEFAULT 'medium',
           status TEXT DEFAULT 'todo',
+          due_date TEXT,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -239,6 +256,8 @@ class TaskService {
       if (projectId) {
         query += ' WHERE project_id = ?';
         params.push(projectId);
+      } else {
+        query += ' WHERE project_id IS NULL';
       }
 
       query += ' ORDER BY updated_at DESC';
@@ -265,8 +284,8 @@ class TaskService {
       const now = new Date().toISOString();
 
       const stmt = db.prepare(`
-        INSERT INTO tasks (id, project_id, title, description, priority, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (id, project_id, title, description, priority, status, due_date, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const result = stmt.run(
@@ -276,6 +295,7 @@ class TaskService {
         task.description || null,
         task.priority || 'medium',
         task.status || 'todo',
+        task.due_date || null,
         now,
         now
       );
@@ -354,6 +374,63 @@ class TaskService {
     } catch (error) {
       console.error('❌ Failed to delete task:', error);
       throw new Error(`Failed to delete task: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  async processNaturalLanguageTask(input) {
+    console.log(`[taskService.cjs] processNaturalLanguageTask: Processing input: "${input}"`);
+    if (!llamaService) {
+      console.error('❌ LlamaService is not available.');
+      throw new Error('The AI service is not available. Please check the application setup.');
+    }
+
+    const prompt = `
+      You are an intelligent task parser. Analyze the following user input and extract the task details.
+      Return a JSON object with the following fields: "title", "description", "due_date", and "priority".
+      The "due_date" should be in ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ).
+      The "priority" can be "low", "medium", or "high".
+      If a value is not present in the input, set it to null.
+      Current date for reference: ${new Date().toISOString()}
+
+      User input: "${input}"
+
+      JSON output:
+    `;
+
+    try {
+      const aiResponse = await llamaService.generate(prompt);
+      console.log('[taskService.cjs] processNaturalLanguageTask: Received AI response.');
+
+      // Extract the JSON part of the response
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('❌ [taskService.cjs] processNaturalLanguageTask: No valid JSON object found in AI response.');
+        throw new Error('Failed to parse task from AI response: Invalid format.');
+      }
+
+      const parsedJson = JSON.parse(jsonMatch);
+      console.log('[taskService.cjs] processNaturalLanguageTask: Parsed JSON from AI response:', parsedJson);
+
+      // Basic validation
+      if (!parsedJson.title) {
+        throw new Error('Failed to parse task: "title" is a required field.');
+      }
+
+      const taskData = {
+        title: parsedJson.title,
+        description: parsedJson.description || null,
+        due_date: parsedJson.due_date || null,
+        priority: parsedJson.priority || 'medium',
+      };
+
+      console.log('[taskService.cjs] processNaturalLanguageTask: Successfully processed NLP task.', taskData);
+      return taskData;
+    } catch (error) {
+      console.error('❌ [taskService.cjs] processNaturalLanguageTask: Error processing NLP task:', error);
+      if (error.message.includes('title')) {
+        throw error;
+      }
+      throw new Error(`Failed to process task with AI: ${error.message}`);
     }
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Send, Loader2, Bot, Trash2, Settings, ChevronDown, Wand2, Scissors } from 'lucide-react';
+import { VoiceInputButton } from '../../components/Clara_Components/VoiceInputButton';
 import { useProviders } from '../../contexts/ProvidersContext';
 import { LumaUIAPIClient, ChatMessage as LumaChatMessage } from './services/lumaUIApiClient';
 import type { Tool } from '../../db';
@@ -1583,6 +1584,12 @@ Follow this plan systematically, but adapt as needed based on actual results.`;
     }
   };
 
+  // Handle voice transcription
+  const handleVoiceTranscription = (transcribedText: string) => {
+    const newMessage = inputMessage + (inputMessage ? ' ' : '') + transcribedText;
+    setInputMessage(newMessage);
+  };
+
   const handleRevert = (checkpointId: string) => {
     const checkpoint = revertToCheckpoint(checkpointId);
     if (checkpoint) {
@@ -2192,6 +2199,16 @@ Please check your request and try again. Make sure the file exists and your inst
             )}
           </div>
           <div className="flex flex-col gap-2">
+            {/* Voice Input Button */}
+            <VoiceInputButton
+              onTranscription={handleVoiceTranscription}
+              disabled={isLoading || !apiClient || !selectedModel}
+              size="md"
+              tooltip="Voice input for chat"
+              className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl shadow-blue-500/25 transform hover:scale-105 disabled:transform-none flex items-center justify-center"
+              maxDuration={60000} // 1 minute max for AI chat
+            />
+
             <button
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isLoading || !apiClient || !selectedModel}
@@ -2203,7 +2220,7 @@ Please check your request and try again. Make sure the file exists and your inst
                 <Send className="w-5 h-5" />
               )}
             </button>
-            
+
             {/* AI Precision Editor Button */}
             <button
               onClick={() => setShowPrecisionEdit(v => !v)}

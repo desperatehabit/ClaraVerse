@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
+import {
+  Plus,
+  Search,
   AlertCircle,
   Wifi,
   WifiOff,
@@ -12,6 +12,7 @@ import {
   FileText,
   Clock
 } from 'lucide-react';
+import VoiceControlButton from '../common/VoiceControlButton';
 import CreateNotebookModal from './CreateNotebookModal';
 import NotebookDetails from './NotebookDetails_new';
 import PythonStartupModal from '../PythonStartupModal';
@@ -358,8 +359,19 @@ const NotebooksContent: React.FC<{ onPageChange: (page: string) => void; userNam
                     placeholder="Search notebooks..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 glassmorphic-card border border-white/30 dark:border-gray-700/50 dark:bg-gray-900/50 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-sakura-500 w-80"
+                    className="pl-10 pr-12 py-2 glassmorphic-card border border-white/30 dark:border-gray-700/50 dark:bg-gray-900/50 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-sakura-500 w-80"
                   />
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    <VoiceControlButton
+                      mode="listen"
+                      size="sm"
+                      variant="ghost"
+                      onTranscription={(text) => {
+                        setSearchQuery(text);
+                      }}
+                      tooltip="Voice search for notebooks"
+                    />
+                  </div>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   {filteredNotebooks.length} of {notebooks.length} notebooks

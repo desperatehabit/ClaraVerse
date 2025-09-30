@@ -1096,6 +1096,284 @@ function registerAppHandlers(ipcLogger, dockerSetup, llamaSwapService, mcpServic
       return { success: false, error: error.message };
     }
   });
+
+  // Voice service IPC handlers
+  ipcMain.handle('voice-service:get-state', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { error: 'Voice service not initialized' };
+      }
+      return { success: true, state: voiceService.getState() };
+    } catch (error) {
+      log.error('Error getting voice service state:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:enable', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      await voiceService.enable();
+      return { success: true };
+    } catch (error) {
+      log.error('Error enabling voice service:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:disable', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      await voiceService.disable();
+      return { success: true };
+    } catch (error) {
+      log.error('Error disabling voice service:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:toggle', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+
+      if (voiceService.isEnabled()) {
+        await voiceService.disable();
+      } else {
+        await voiceService.enable();
+      }
+      return { success: true };
+    } catch (error) {
+      log.error('Error toggling voice service:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:start-listening', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      await voiceService.startListening();
+      return { success: true };
+    } catch (error) {
+      log.error('Error starting voice listening:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:stop-listening', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      await voiceService.stopListening();
+      return { success: true };
+    } catch (error) {
+      log.error('Error stopping voice listening:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:speak', async (event, text, options) => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      await voiceService.speak(text, options);
+      return { success: true };
+    } catch (error) {
+      log.error('Error speaking text:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:stop-speaking', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      await voiceService.stopSpeaking();
+      return { success: true };
+    } catch (error) {
+      log.error('Error stopping speech:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:update-settings', async (event, settings) => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      await voiceService.updateSettings(settings);
+      return { success: true };
+    } catch (error) {
+      log.error('Error updating voice settings:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:get-settings', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { error: 'Voice service not initialized' };
+      }
+      return { success: true, settings: voiceService.getSettings() };
+    } catch (error) {
+      log.error('Error getting voice settings:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-service:check-health', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      const isHealthy = await voiceService.checkHealth();
+      return { success: true, isHealthy };
+    } catch (error) {
+      log.error('Error checking voice service health:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Listen for voice service events and forward to renderer
+  const voiceService = global.voiceService;
+  if (voiceService) {
+    voiceService.on('stateChange', (state) => {
+      const { mainWindow } = require('../main/window-manager');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('voice-state-change', state);
+      }
+    });
+
+    voiceService.on('error', (error) => {
+      const { mainWindow } = require('../main/window-manager');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('voice-error', error);
+      }
+    });
+
+    voiceService.on('speechStart', () => {
+      const { mainWindow } = require('../main/window-manager');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('voice-speech-start');
+      }
+    });
+
+    voiceService.on('speechEnd', () => {
+      const { mainWindow } = require('../main/window-manager');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('voice-speech-end');
+      }
+    });
+
+    voiceService.on('speakingStart', () => {
+      const { mainWindow } = require('../main/window-manager');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('voice-speaking-start');
+      }
+    });
+
+    voiceService.on('speakingEnd', () => {
+      const { mainWindow } = require('../main/window-manager');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('voice-speaking-end');
+      }
+    });
+
+    voiceService.on('notification', (notification) => {
+      const { mainWindow } = require('../main/window-manager');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('voice-notification', notification);
+      }
+    });
+  }
+
+  // Voice command handlers
+  ipcMain.handle('voice-command:execute', async (event, command) => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      const result = await voiceService.executeQuickCommand(command);
+      return { success: true, result };
+    } catch (error) {
+      log.error('Error executing voice command:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('voice-command:get-available', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { error: 'Voice service not initialized' };
+      }
+      const commands = await voiceService.getAvailableCommands();
+      return { success: true, commands };
+    } catch (error) {
+      log.error('Error getting available voice commands:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Tray voice command shortcuts
+  ipcMain.handle('tray-voice-command:start', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+      await voiceService.startListening();
+      return { success: true };
+    } catch (error) {
+      log.error('Error starting tray voice command:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('tray-voice-command:quick', async () => {
+    try {
+      const voiceService = global.voiceService;
+      if (!voiceService) {
+        return { success: false, error: 'Voice service not initialized' };
+      }
+
+      // If not enabled, enable it first
+      if (!voiceService.isEnabled()) {
+        await voiceService.enable();
+        // Give it a moment to connect
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Start listening for a quick command
+      await voiceService.startListening();
+      return { success: true };
+    } catch (error) {
+      log.error('Error with quick tray voice command:', error);
+      return { success: false, error: error.message };
+    }
+  });
 }
 
 module.exports = {

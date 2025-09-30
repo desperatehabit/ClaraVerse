@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { TaskHeaderProps } from '../types';
 import { PersonalProject } from '../types';
 import { useTaskStore } from '../state/taskStore';
+import VoiceControlButton from '../../../components/common/VoiceControlButton';
 
 interface ExtendedTaskHeaderProps extends TaskHeaderProps {
   selectedProject?: PersonalProject | null;
@@ -36,14 +37,33 @@ const TaskHeader: React.FC<ExtendedTaskHeaderProps> = ({ selectedProject }) => {
           </p>
         </div>
 
-        <button
-          className="glassmorphicButton flex items-center gap-2 px-4 py-2 bg-sakura-500/20 dark:bg-sakura-500/30 backdrop-blur-md border border-sakura-300/40 dark:border-sakura-400/50 rounded-lg text-sakura-700 dark:text-sakura-300 font-medium hover:bg-sakura-500/30 dark:hover:bg-sakura-500/40 transition-all duration-300 shadow-sm hover:shadow-md"
-          onClick={openAddTaskModal}
-          aria-label="Create new task"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Task</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <VoiceControlButton
+            mode="listen"
+            size="md"
+            variant="secondary"
+            onTranscription={(text) => {
+              // Handle voice commands for task management
+              const command = text.toLowerCase().trim();
+              if (command.includes('new task') || command.includes('create task') || command.includes('add task')) {
+                openAddTaskModal();
+              } else if (command.includes('show tasks') || command.includes('list tasks') || command.includes('view tasks')) {
+                // Could navigate to tasks view or filter
+                console.log('Voice command: show tasks');
+              }
+            }}
+            tooltip="Voice commands: 'create task', 'new task', 'show tasks'"
+          />
+
+          <button
+            className="glassmorphicButton flex items-center gap-2 px-4 py-2 bg-sakura-500/20 dark:bg-sakura-500/30 backdrop-blur-md border border-sakura-300/40 dark:border-sakura-400/50 rounded-lg text-sakura-700 dark:text-sakura-300 font-medium hover:bg-sakura-500/30 dark:hover:bg-sakura-500/40 transition-all duration-300 shadow-sm hover:shadow-md"
+            onClick={openAddTaskModal}
+            aria-label="Create new task"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Task</span>
+          </button>
+        </div>
       </div>
     </div>
   );

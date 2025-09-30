@@ -1,8 +1,11 @@
-import React, { useEffect } from 'react';
-import { FolderOpen, Loader2, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { FolderOpen, Loader2, AlertCircle, Mic } from 'lucide-react';
 import { useTaskStore } from '../state/taskStore';
 import { PersonalProject } from '../types';
 import AddProjectForm from './AddProjectForm';
+import { VoiceInputButton } from '../../../components/Clara_Components/VoiceInputButton';
+import { voiceTaskProcessor } from '../../../services/VoiceTaskProcessor';
+import { voiceTaskFeedbackService } from '../../../services/VoiceTaskFeedbackService';
 
 const ProjectSidebar: React.FC = () => {
   const {
@@ -13,7 +16,9 @@ const ProjectSidebar: React.FC = () => {
     loading,
     error,
     openAddProjectModal,
+    processVoiceCommand,
   } = useTaskStore();
+  const [isVoiceCommandMode, setIsVoiceCommandMode] = useState(false);
 
   // Fetch projects on component mount
   useEffect(() => {
@@ -23,6 +28,31 @@ const ProjectSidebar: React.FC = () => {
 
   const handleProjectSelect = (projectId: string | null) => {
     selectProject(projectId);
+  };
+
+  const handleVoiceCommand = async (transcription: string) => {
+    if (!transcription.trim()) return;
+
+    try {
+      const result = await processVoiceCommand(transcription);
+
+      // Provide visual feedback
+      if (result.success) {
+        // Refresh projects if needed
+        if (result.action === 'create_project' || result.action === 'show_project') {
+          fetchProjects();
+        }
+      }
+
+      // The voiceTaskProcessor will handle audio feedback through the feedback service
+
+    } catch (error) {
+      console.error('Voice command processing error:', error);
+      await voiceTaskFeedbackService.provideImmediateFeedback(
+        'Sorry, I encountered an error processing your voice command.',
+        'error'
+      );
+    }
   };
 
   // Show loading state
@@ -62,9 +92,19 @@ const ProjectSidebar: React.FC = () => {
   return (
     <div className="w-64 bg-white/10 dark:bg-gray-900/30 backdrop-blur-lg border-r border-white/20 dark:border-gray-700/50 rounded-l-xl">
       <div className="p-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Projects
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Projects
+          </h2>
+          <VoiceInputButton
+            onTranscription={handleVoiceCommand}
+            onRecordingStart={() => setIsVoiceCommandMode(true)}
+            onRecordingEnd={() => setIsVoiceCommandMode(false)}
+            size="sm"
+            tooltip="Voice commands for project management"
+            className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+          />
+        </div>
 
         <div className="space-y-2">
           {/* All Tasks option */}

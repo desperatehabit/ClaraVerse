@@ -63,13 +63,20 @@ const validChannels = [
   'tasks:createProject',
   'tasks:updateProject',
   'tasks:deleteProject',
-  'tasks:getProjects'
+  'tasks:getProjects',
+  'voice:generate-token',
+  'voice:get-room-name'
 ];
 
 // Add explicit logging for debugging
 console.log('Preload script initializing...');
 
 contextBridge.exposeInMainWorld('electron', {
+  voice: {
+    generateToken: (identity, roomName) => ipcRenderer.invoke('voice:generate-token', { identity, roomName }),
+    getRoomName: () => ipcRenderer.invoke('voice:get-room-name'),
+    processTaskCommand: (command) => ipcRenderer.invoke('voice:process-task-command', command),
+  },
   // System Info
   getAppPath: () => ipcRenderer.invoke('get-app-path'),
   getAppVersion: () => app.getVersion(),
@@ -488,7 +495,8 @@ contextBridge.exposeInMainWorld('personalTaskAPI', {
   },
   createTask: (taskData) => ipcRenderer.invoke('tasks:createTask', taskData),
   updateTask: (id, updates) => ipcRenderer.invoke('tasks:updateTask', { id, updates }),
-  deleteTask: (id) => ipcRenderer.invoke('tasks:deleteTask', id)
+  deleteTask: (id) => ipcRenderer.invoke('tasks:deleteTask', id),
+  processNaturalLanguageTask: (text) => ipcRenderer.invoke('tasks:processNaturalLanguageTask', text)
 });
 
 // Primary task management API with full functionality

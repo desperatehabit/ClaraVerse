@@ -6,10 +6,52 @@ const log = require('electron-log');
 let tray = null;
 let isQuitting = false;
 
+function updateTrayMenu() {
+  if (!tray) return;
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show ClaraVerse',
+      click: () => {
+        const { mainWindow, createMainWindow } = require('./window-manager');
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+          }
+          mainWindow.show();
+          mainWindow.focus();
+        } else {
+          createMainWindow();
+        }
+      }
+    },
+    {
+      label: 'Hide ClaraVerse',
+      click: () => {
+        const { mainWindow } = require('./window-manager');
+        if (mainWindow) {
+          mainWindow.hide();
+        }
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+
+  tray.setContextMenu(contextMenu);
+}
+
 function createTray() {
   if (tray) return;
-  
+
   try {
+
     const possibleLogoPaths = [
       path.join(__dirname, '../assets', 'tray-icon.png'),
       path.join(__dirname, '../../public/logo.png'),
@@ -17,15 +59,15 @@ function createTray() {
       path.join(__dirname, '../../assets/icons/logo.png'),
       path.join(__dirname, '../../assets/icons/png/logo.png')
     ];
-    
+
     let trayIcon;
     let logoFound = false;
-    
+
     for (const logoPath of possibleLogoPaths) {
       if (fs.existsSync(logoPath)) {
         try {
           trayIcon = nativeImage.createFromPath(logoPath);
-          
+
           if (process.platform === 'darwin') {
             trayIcon = trayIcon.resize({ width: 16, height: 16 });
             trayIcon.setTemplateImage(true);
@@ -34,7 +76,7 @@ function createTray() {
           } else {
             trayIcon = trayIcon.resize({ width: 22, height: 22 });
           }
-          
+
           logoFound = true;
           log.info(`Using logo from: ${logoPath}`);
           break;
@@ -43,11 +85,11 @@ function createTray() {
         }
       }
     }
-    
+
     if (!logoFound) {
       log.info('Logo file not found, creating programmatic icon');
       const iconSize = process.platform === 'darwin' ? 16 : (process.platform === 'win32' ? 16 : 22);
-      
+
       if (process.platform === 'darwin') {
         const canvas = `
           <svg width="${iconSize}" height="${iconSize}" xmlns="http://www.w3.org/2000/svg">
@@ -75,46 +117,11 @@ function createTray() {
     }
     
     tray = new Tray(trayIcon);
-    
+
+    // Initialize tooltip and menu (will be updated by voice integration if available)
     tray.setToolTip('ClaraVerse');
-    
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: 'Show ClaraVerse',
-        click: () => {
-          const { mainWindow, createMainWindow } = require('./window-manager');
-          if (mainWindow) {
-            if (mainWindow.isMinimized()) {
-              mainWindow.restore();
-            }
-            mainWindow.show();
-            mainWindow.focus();
-          } else {
-            createMainWindow();
-          }
-        }
-      },
-      {
-        label: 'Hide ClaraVerse',
-        click: () => {
-          const { mainWindow } = require('./window-manager');
-          if (mainWindow) {
-            mainWindow.hide();
-          }
-        }
-      },
-      { type: 'separator' },
-      {
-        label: 'Quit',
-        click: () => {
-          isQuitting = true;
-          app.quit();
-        }
-      }
-    ]);
-    
-    tray.setContextMenu(contextMenu);
-    
+    updateTrayMenu();
+
     tray.on('click', () => {
       const { mainWindow, createMainWindow } = require('./window-manager');
       if (mainWindow) {
@@ -131,7 +138,7 @@ function createTray() {
         createMainWindow();
       }
     });
-    
+
     tray.on('double-click', () => {
       const { mainWindow, createMainWindow } = require('./window-manager');
       if (mainWindow) {
@@ -144,15 +151,24 @@ function createTray() {
         createMainWindow();
       }
     });
-    
+
     log.info('System tray created successfully');
   } catch (error) {
     log.error('Error creating system tray:', error);
   }
 }
 
+function destroyTray() {
+  if (tray) {
+    tray.destroy();
+    tray = null;
+    log.info('System tray destroyed');
+  }
+}
+
 module.exports = {
   createTray,
+  destroyTray,
   get tray() { return tray; },
   get isQuitting() { return isQuitting; },
   set isQuitting(value) { isQuitting = value; },

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Home, Bot, Settings, HelpCircle, ImageIcon, Network, BrainCircuit, Download, X, Zap, Code2, BookOpen, Calendar, Users } from 'lucide-react';
 import logo from '../assets/logo.png';
+import VoiceControlButton from './common/VoiceControlButton';
 
 // interface HuggingFaceModel {
 //   id: string;
@@ -532,7 +533,7 @@ const Sidebar = ({ activePage = 'dashboard', onPageChange, alphaFeaturesEnabled 
           <ul className="space-y-2 px-2 mb-4">
             {bottomMenuItems.map((item) => (
               <li key={item.id}>
-                <button 
+                <button
                   onClick={() => onPageChange(item.id)}
                   data-page={item.id}
                   className={`w-full flex items-center rounded-lg transition-colors h-10 ${
@@ -544,7 +545,7 @@ const Sidebar = ({ activePage = 'dashboard', onPageChange, alphaFeaturesEnabled 
                   }`}
                 >
                   <item.icon className="w-5 h-5 flex-shrink-0" />
-                  <span 
+                  <span
                     className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
                       isExpanded ? 'opacity-100 w-auto ml-3' : 'opacity-0 w-0'
                     }`}
@@ -554,6 +555,28 @@ const Sidebar = ({ activePage = 'dashboard', onPageChange, alphaFeaturesEnabled 
                 </button>
               </li>
             ))}
+
+            {/* Voice Control Section */}
+            <li>
+              <div className={`w-full flex items-center rounded-lg transition-colors h-10 ${
+                isExpanded ? 'px-4 justify-between' : 'justify-center px-0'
+              }`}>
+                <div className={`flex items-center gap-3 transition-all duration-300 ${
+                  isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                }`}>
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    Voice
+                  </span>
+                </div>
+                <VoiceControlButton
+                  mode="toggle"
+                  size="sm"
+                  variant="ghost"
+                  className={isExpanded ? '' : 'mx-auto'}
+                  tooltip={isExpanded ? "Toggle voice mode" : "Voice"}
+                />
+              </div>
+            </li>
           </ul>
         </div>
       </nav>

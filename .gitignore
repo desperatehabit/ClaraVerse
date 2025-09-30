@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-electron
 dist-ssr
 *.local
 
@@ -57,11 +58,17 @@ certificate.p12
 
 ./Support
 python-env
+voice_env
+py_backend/voice_env
+py_backend/python-env
+py_backend/python-env/*
+
 .clara
 
 ./py_backend/__pycache__
 ./py_backend/cache
 ./py_backend/python-env
+./py_backend/voice_env/*
 ./py_backend/python-env/cache
 ./py_backend/python-env/pip-cache
 ./py_backend/python-env/python-env
@@ -124,6 +131,13 @@ electron/llamacpp-binaries/linux-x64/vulkan-shaders-gen
 !electron/llamacpp-binaries/LICENSE*
 py_backend/cache/*
 py_backend/.venv/*
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+virtualenv/
 py_backend/light_rag_examples/*
 electron/llamacpp-binaries/darwin-arm64-backup*
 notarization.env

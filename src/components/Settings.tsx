@@ -1,31 +1,34 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Save, User, Globe, Server, Image, Settings as SettingsIcon, Trash2, HardDrive, Plus, Check, X, Edit3, Zap, Router, Bot, Download, RotateCcw, AlertCircle, ExternalLink, Brain, Puzzle, Power, Palette, Type, Search, Clock, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
+import { Save, User, Globe, Server, Image, Settings as SettingsIcon, Trash2, HardDrive, Plus, Check, X, Edit3, Zap, Router, Bot, Download, RotateCcw, AlertCircle, ExternalLink, Brain, Puzzle, Power, Palette, Type, Search, Clock, ChevronRight, ChevronDown, ChevronLeft, Mic, MicOff } from 'lucide-react';
 import { db, type PersonalInfo, type APIConfig, type Provider } from '../db';
 import { useTheme, ThemeMode } from '../hooks/useTheme';
 import { useProviders } from '../contexts/ProvidersContext';
+import { useVoiceContext } from '../contexts/Voice/VoiceContext';
 import MCPSettings from './MCPSettings';
 import ModelManager from './ModelManager';
 import ToolBelt from './ToolBelt';
 import UnifiedServiceManager from './Settings/UnifiedServiceManager';
 import StartupTab from './Settings/StartupTab';
 import GPUDiagnostics from './GPUDiagnostics';
+import VoiceControlButton from './common/VoiceControlButton';
 import { 
-  DEFAULT_UI_PREFERENCES, 
-  FONT_SCALE_OPTIONS, 
+  DEFAULT_UI_PREFERENCES,
+  FONT_SCALE_OPTIONS,
   FONT_WEIGHT_OPTIONS,
   LINE_HEIGHT_OPTIONS,
   LETTER_SPACING_OPTIONS,
-  ACCENT_COLOR_OPTIONS, 
+  ACCENT_COLOR_OPTIONS,
   FONT_PRESETS,
   BUILTIN_WALLPAPERS,
   applyUIPreferences,
   detectSystemFonts
 } from '../utils/uiPreferences';
-import { 
+import {
   createGradientWallpaper
 } from '../utils/imageProcessing';
 import { indexedDBService } from '../services/indexedDB';
 import { GalleryImage } from '../types';
+import VoiceSettingsPanel from './Settings/Voice/VoiceSettingsPanel';
 
 // Type for llama.cpp update info
 interface LlamacppUpdateInfo {
@@ -77,11 +80,11 @@ const Settings = () => {
   
   // Sub-tabs for each main category
   const [activeInterfaceTab, setActiveInterfaceTab] = useState<'appearance' | 'ui-preferences'>('appearance');
-  const [activeAITab, setActiveAITab] = useState<'api' | 'models' | 'mcp'>('api');
+  const [activeAITab, setActiveAITab] = useState<'api' | 'models' | 'mcp' | 'voice'>('api');
   const [activeSystemTab, setActiveSystemTab] = useState<'startup' | 'services' | 'toolbelt' | 'updates'>('startup');
   
   // Keep legacy activeTab for backward compatibility during transition
-  const [activeTab, setActiveTab] = useState<'personal' | 'api' | 'preferences' | 'models' | 'mcp' | 'toolbelt' | 'updates' | 'sdk-demo' | 'servers' | 'startup'>('api');
+  const [activeTab, setActiveTab] = useState<'personal' | 'api' | 'preferences' | 'models' | 'mcp' | 'toolbelt' | 'updates' | 'sdk-demo' | 'servers' | 'startup' | 'voice'>('api');
   const [activeModelTab, setActiveModelTab] = useState<'models' | 'gpu-diagnostics'>('models');
 
   // Ensure first sub-tab is selected when switching main tabs
@@ -96,27 +99,28 @@ const Settings = () => {
   }, [activeMainTab]);
 
   // Function to get the effective active tab based on new structure
-  const getEffectiveActiveTab = (): typeof activeTab => {
-    if (activeMainTab === 'profile') return 'personal';
-    if (activeMainTab === 'interface') {
-      // Default to first sub-tab when main tab is selected
-      const selected = activeInterfaceTab || 'appearance';
-      return selected === 'appearance' || selected === 'ui-preferences' ? 'preferences' : 'preferences';
-    }
-    if (activeMainTab === 'ai-models') {
-      // Default to first sub-tab when main tab is selected
-      const selected = activeAITab || 'api';
-      return selected as 'api' | 'models' | 'mcp';
-    }
-    if (activeMainTab === 'system') {
-      // Default to first sub-tab when main tab is selected
-      const selected = activeSystemTab || 'startup';
-      if (selected === 'startup') return 'startup';
-      if (selected === 'services') return 'servers';
-      return selected as 'toolbelt' | 'updates';
-    }
-    return 'api'; // default
-  };
+   const getEffectiveActiveTab = (): typeof activeTab => {
+     if (activeMainTab === 'profile') return 'personal';
+     if (activeMainTab === 'interface') {
+       // Default to first sub-tab when main tab is selected
+       const selected = activeInterfaceTab || 'appearance';
+       return selected === 'appearance' || selected === 'ui-preferences' ? 'preferences' : 'preferences';
+     }
+     if (activeMainTab === 'ai-models') {
+       // Default to first sub-tab when main tab is selected
+       const selected = activeAITab || 'api';
+       if (selected === 'voice') return 'voice';
+       return selected as 'api' | 'models' | 'mcp';
+     }
+     if (activeMainTab === 'system') {
+       // Default to first sub-tab when main tab is selected
+       const selected = activeSystemTab || 'startup';
+       if (selected === 'startup') return 'startup';
+       if (selected === 'services') return 'servers';
+       return selected as 'toolbelt' | 'updates';
+     }
+     return 'api'; // default
+   };
 
   // Get current effective tab
   const effectiveActiveTab = getEffectiveActiveTab();
@@ -230,6 +234,7 @@ const Settings = () => {
 
   const { setTheme } = useTheme();
   const { providers, addProvider, updateProvider, deleteProvider, setPrimaryProvider, loading: providersLoading } = useProviders();
+  const voice = useVoiceContext();
   // const { theme } = useTheme();
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -630,8 +635,13 @@ const Settings = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
-    if (tabParam && ['personal', 'api', 'preferences', 'models', 'mcp', 'toolbelt', 'updates', 'sdk-demo', 'servers'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+    if (tabParam && ['personal', 'api', 'preferences', 'models', 'mcp', 'toolbelt', 'updates', 'sdk-demo', 'servers', 'startup', 'voice'].includes(tabParam)) {
+      if (tabParam === 'voice') {
+        setActiveMainTab('ai-models');
+        setActiveAITab('voice');
+      } else {
+        setActiveTab(tabParam as any);
+      }
     }
   }, []);
 
@@ -1794,6 +1804,16 @@ const Settings = () => {
                     Local Models
                   </button>
                   <button
+                    onClick={() => setActiveAITab('voice')}
+                    className={`flex items-center px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+                      activeAITab === 'voice'
+                        ? 'text-sakura-600 dark:text-sakura-300 font-medium'
+                        : 'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100'
+                    }`}
+                  >
+                    Voice Settings
+                  </button>
+                  <button
                     onClick={() => setActiveAITab('mcp')}
                     className={`flex items-center px-2.5 py-1.5 rounded-md text-sm transition-colors ${
                       activeAITab === 'mcp'
@@ -1903,26 +1923,52 @@ const Settings = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Name
                   </label>
-                  <input
-                    type="text"
-                    value={personalInfo.name}
-                    onChange={(e) => setPersonalInfo(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-                    placeholder="Your name"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={personalInfo.name}
+                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-2 pr-12 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+                      placeholder="Your name"
+                    />
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <VoiceControlButton
+                        mode="listen"
+                        size="sm"
+                        variant="ghost"
+                        onTranscription={(text) => {
+                          setPersonalInfo(prev => ({ ...prev, name: text }));
+                        }}
+                        tooltip="Voice input for name"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Email
                   </label>
-                  <input
-                    type="email"
-                    value={personalInfo.email}
-                    onChange={(e) => setPersonalInfo(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-                    placeholder="your.email@example.com"
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={personalInfo.email}
+                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-4 py-2 pr-12 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+                      placeholder="your.email@example.com"
+                    />
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <VoiceControlButton
+                        mode="listen"
+                        size="sm"
+                        variant="ghost"
+                        onTranscription={(text) => {
+                          setPersonalInfo(prev => ({ ...prev, email: text }));
+                        }}
+                        tooltip="Voice input for email"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -2772,6 +2818,105 @@ const Settings = () => {
                     </div>
                   </div>
 
+                  {/* Voice Settings */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Voice Features
+                    </label>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-3">
+                          <VoiceControlButton
+                            mode="toggle"
+                            size="sm"
+                            showLabel={false}
+                          />
+                          <div>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              🎤 Voice Mode
+                            </span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Enable voice input and text-to-speech features
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {voice.isEnabled ? (
+                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              Active
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-gray-500">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {voice.isEnabled && (
+                        <>
+                          <div className="flex items-center justify-between py-2 pl-8">
+                            <div>
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                🔊 Text-to-Speech
+                              </span>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Enable voice responses and audio feedback
+                              </p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={voice.settings?.ttsEnabled ?? true}
+                                onChange={(e) => voice.updateSettings({ ttsEnabled: e.target.checked })}
+                                className="sr-only peer"
+                              />
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 dark:peer-focus:ring-purple-800/20 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+                            </label>
+                          </div>
+
+                          <div className="flex items-center justify-between py-2 pl-8">
+                            <div>
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                🎙️ Push-to-Talk
+                              </span>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Hold key to activate voice input
+                              </p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={voice.settings?.pushToTalk ?? false}
+                                onChange={(e) => voice.updateSettings({ pushToTalk: e.target.checked })}
+                                className="sr-only peer"
+                              />
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 dark:peer-focus:ring-purple-800/20 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+                            </label>
+                          </div>
+
+                          {voice.error && (
+                            <div className="pl-8">
+                              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <AlertCircle className="w-4 h-4 text-red-500" />
+                                  <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                                    Voice Error
+                                  </span>
+                                </div>
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                  {voice.error}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   {/* System Monitor Toggle */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -2961,8 +3106,19 @@ const Settings = () => {
                           placeholder="Search your images..."
                           value={gallerySearchQuery}
                           onChange={(e) => setGallerySearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-sm"
+                          className="w-full pl-10 pr-12 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-sm"
                         />
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                          <VoiceControlButton
+                            mode="listen"
+                            size="sm"
+                            variant="ghost"
+                            onTranscription={(text) => {
+                              setGallerySearchQuery(text);
+                            }}
+                            tooltip="Voice search for images"
+                          />
+                        </div>
                       </div>
 
                       {/* Loading State */}
@@ -3427,9 +3583,12 @@ const Settings = () => {
           )}
 
           {/* SDK Code Export Demo Tab */}
-          {activeTab === 'sdk-demo' && (
-            <div className="glassmorphic rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-6">
+         {effectiveActiveTab === 'voice' && (
+           <VoiceSettingsPanel />
+         )}
+         {activeTab === 'sdk-demo' && (
+           <div className="glassmorphic rounded-xl p-6">
+             <div className="flex items-center gap-3 mb-6">
                 <Zap className="w-6 h-6 text-purple-500" />
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -4144,8 +4303,19 @@ const ProcessButton = () => {
                       value={providerSearchQuery}
                       onChange={(e) => setProviderSearchQuery(e.target.value)}
                       placeholder="Search providers (OpenAI, Groq, Gemini, Mistral, …)"
-                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+                      className="w-full pl-9 pr-12 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
                     />
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <VoiceControlButton
+                        mode="listen"
+                        size="sm"
+                        variant="ghost"
+                        onTranscription={(text) => {
+                          setProviderSearchQuery(text);
+                        }}
+                        tooltip="Voice search for providers"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2 max-h-64 overflow-auto pr-1">
                     {/* Custom first */}
@@ -4235,24 +4405,50 @@ const ProcessButton = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Provider Name</label>
-                    <input
-                      type="text"
-                      value={newProviderForm.name}
-                      onChange={(e) => setNewProviderForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-                      placeholder="Enter provider name"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={newProviderForm.name}
+                        onChange={(e) => setNewProviderForm(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-4 py-2 pr-12 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+                        placeholder="Enter provider name"
+                      />
+                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                        <VoiceControlButton
+                          mode="listen"
+                          size="sm"
+                          variant="ghost"
+                          onTranscription={(text) => {
+                            setNewProviderForm(prev => ({ ...prev, name: text }));
+                          }}
+                          tooltip="Voice input for provider name"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
-                    <input
-                      type="url"
-                      value={newProviderForm.baseUrl}
-                      onChange={(e) => setNewProviderForm(prev => ({ ...prev, baseUrl: e.target.value }))}
-                      className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-                      placeholder="https://api.example.com/v1"
-                    />
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={newProviderForm.baseUrl}
+                        onChange={(e) => setNewProviderForm(prev => ({ ...prev, baseUrl: e.target.value }))}
+                        className="w-full px-4 py-2 pr-12 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+                        placeholder="https://api.example.com/v1"
+                      />
+                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                        <VoiceControlButton
+                          mode="listen"
+                          size="sm"
+                          variant="ghost"
+                          onTranscription={(text) => {
+                            setNewProviderForm(prev => ({ ...prev, baseUrl: text }));
+                          }}
+                          tooltip="Voice input for base URL"
+                        />
+                      </div>
+                    </div>
                     {newProviderForm.baseUrl.trim().toLowerCase().startsWith('https://api.anthropic.com/') && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400">Anthropic API is not supported here. Please use a different provider.</p>
                     )}
@@ -4260,13 +4456,26 @@ const ProcessButton = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
-                    <input
-                      type="password"
-                      value={newProviderForm.apiKey}
-                      onChange={(e) => setNewProviderForm(prev => ({ ...prev, apiKey: e.target.value }))}
-                      className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-                      placeholder="Enter API key (optional)"
-                    />
+                    <div className="relative">
+                      <input
+                        type="password"
+                        value={newProviderForm.apiKey}
+                        onChange={(e) => setNewProviderForm(prev => ({ ...prev, apiKey: e.target.value }))}
+                        className="w-full px-4 py-2 pr-12 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
+                        placeholder="Enter API key (optional)"
+                      />
+                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                        <VoiceControlButton
+                          mode="listen"
+                          size="sm"
+                          variant="ghost"
+                          onTranscription={(text) => {
+                            setNewProviderForm(prev => ({ ...prev, apiKey: text }));
+                          }}
+                          tooltip="Voice input for API key"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">
